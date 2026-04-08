@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(104, 91, 199, 0.08), transparent 28%),
+      radial-gradient(circle at top right, rgba(181, 237, 24, 0.12), transparent 22%),
+      linear-gradient(180deg, #fcfcfe 0%, #f7f8fc 100%);
+    color: #1A1A2E;
+    overscroll-behavior: none;
+  }
+
+  /* Красивый скроллбар на десктопе */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+}
+
+@layer utilities {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Скрыть полосу прокрутки но сохранить скролл */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* font-black алиас для Inter */
+  .font-black { font-weight: 900; }
+
+  .panel-soft {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px);
+  }
+}

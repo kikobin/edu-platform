@@ -1,0 +1,8 @@
+[17:35:16 2026-03-27] FETCHING Version 2.42.14
+[17:35:16 2026-03-27] DOWNLOADING https://github.com/spicetify/cli/releases/download/v2.42.14/spicetify-2.42.14-darwin-arm64.tar.gz
+[17:35:17 2026-03-27] EXTRACTING /Users/kiko/.spicetify/spicetify.tar.gz
+[17:35:18 2026-03-27] SETTING EXECUTABLE PERMISSIONS TO /Users/kiko/.spicetify/spicetify
+[17:35:18 2026-03-27] REMOVING /Users/kiko/.spicetify/spicetify.tar.gz
+[17:35:18 2026-03-27] spicetify path already set in /Users/kiko/.zshrc, continuing...
+[17:35:18 2026-03-27] spicetify v2.42.14 was installed successfully to /Users/kiko/.spicetify
+[17:35:18 2026-03-27] Run 'spicetify --help' to get started
