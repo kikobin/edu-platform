@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
-import { awardXPByAppUserId, XP_SOURCES } from "@/lib/awardXP";
+import { awardXPByAppUserId } from "@/lib/awardXP";
 import { supabase } from "@/lib/supabase";
+import { rateLimit } from "@/lib/rateLimit";
+import { parseBody, AdminAdjustXPSchema } from "@/lib/validation/schemas";
 
 export async function PATCH(
   request: Request,
@@ -10,20 +12,22 @@ export async function PATCH(
   const auth = await requireAuth("admin");
   if (auth instanceof NextResponse) return auth;
 
+  if (!rateLimit(`admin:xp:${auth.authId}`, { limit: 30, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
+  const body = await parseBody(request, AdminAdjustXPSchema);
+  if (body instanceof NextResponse) return body;
+
   const profile = await supabase.getStudentProfileById(params.id);
   if (!profile) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  const { delta } = await request.json();
-  if (typeof delta !== "number" || !Number.isFinite(delta) || delta <= 0) {
-    return NextResponse.json({ error: "delta must be a positive number" }, { status: 400 });
-  }
-
-  // Use the idempotency-safe awardXP. Admin adjustments use a timestamped source
-  // to allow multiple adjustments (not idempotent by design).
+  // Admin adjustments use a timestamped source so awardXP's idempotency
+  // doesn't collapse multiple distinct adjustments into one.
   const sourceId = `admin:adjust:${params.id}:${Date.now()}`;
-  const newTotal = await awardXPByAppUserId(params.id, sourceId, Math.round(delta));
+  const newTotal = await awardXPByAppUserId(params.id, sourceId, body.delta);
 
   return NextResponse.json({ ok: true, xp: newTotal ?? profile.xp });
 }

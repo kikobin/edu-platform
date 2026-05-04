@@ -59,6 +59,21 @@ export const PatchProfileSchema = z.object({
   frameId:  z.string().max(50).nullable().optional(),
 });
 
+// ─── Admin XP adjustment ──────────────────────────────────────────────────────
+
+// Cap admin XP grants so a malformed UI or accidental script can't push a
+// student to absurd numbers. 10k is well above any single legitimate award.
+export const AdminAdjustXPSchema = z.object({
+  delta: z.number().int().positive().max(10_000),
+});
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export const LoginSchema = z.object({
+  username: z.string().trim().min(1).max(64),
+  password: z.string().min(1).max(200),
+});
+
 // ─── Shop ─────────────────────────────────────────────────────────────────────
 
 export const BuyItemSchema = z.object({
