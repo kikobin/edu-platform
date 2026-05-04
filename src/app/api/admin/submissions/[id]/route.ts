@@ -49,11 +49,26 @@ export async function PATCH(request: Request, { params }: Props) {
       // Award approval XP.
       // awardXP uses UNIQUE(user_id, source_id) — idempotent within the same source.
       // Because revokeXP deletes the row when reverting, re-approval re-inserts it.
-      await awardXPByAppUserId(realUserId, approvalSource, XP_REWARDS.HOMEWORK_APPROVED);
+      const total = await awardXPByAppUserId(realUserId, approvalSource, XP_REWARDS.HOMEWORK_APPROVED);
+      if (total === null) {
+        Sentry.captureMessage("awardXPByAppUserId returned null — profile not found", {
+          level: "warning",
+          tags: { route: `PATCH /api/admin/submissions/${params.id}`, action: "approve" },
+          extra: { realUserId, realLessonId, approvalSource },
+        });
+      }
     } else if (prevStatus === "approved" && status !== "approved") {
       // Revert from approved → deduct XP by deleting the award event.
       // Deleting (not negative-event) keeps the source_id reusable for future re-approvals.
-      await revokeXPByAppUserId(realUserId, approvalSource);
+      const total = await revokeXPByAppUserId(realUserId, approvalSource);
+      if (total === null) {
+        // Rollback silently failed — log so we can investigate XP inflation.
+        Sentry.captureMessage("revokeXPByAppUserId returned null — XP rollback skipped", {
+          level: "warning",
+          tags: { route: `PATCH /api/admin/submissions/${params.id}`, action: "revoke" },
+          extra: { realUserId, realLessonId, approvalSource, prevStatus, status },
+        });
+      }
     }
 
     if (status === "approved" || status === "revision") {
