@@ -12,6 +12,7 @@ export const AwardXPSchema = z.object({
 export const LessonProgressSchema = z.object({
   userId:        z.string().min(1).max(100),
   lessonId:      z.string().min(1).max(100),
+  videoDone:     z.boolean().optional(),
   reviewDone:    z.boolean().optional(),
   practiceDone:  z.boolean().optional(),
   practiceScore: z.number().int().min(0).max(100).optional(),

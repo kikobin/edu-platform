@@ -3,6 +3,7 @@ import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
 import { rateLimit } from "@/lib/rateLimit";
+import { parseBody, LessonProgressSchema } from "@/lib/validation/schemas";
 
 export async function POST(request: Request) {
   const auth = await requireAuth();
@@ -12,17 +13,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
+  const body = await parseBody(request, LessonProgressSchema);
+  if (body instanceof NextResponse) return body;
+
+  const { userId, lessonId, videoDone, reviewDone, practiceDone, practiceScore } = body;
+
+  if (auth.appUserId !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
-    const { userId, lessonId, videoDone, reviewDone, practiceDone, practiceScore } = await request.json();
-
-    if (!userId || !lessonId) {
-      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
-    }
-
-    if (auth.appUserId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const safeScore = typeof practiceScore === "number" ? Math.max(0, Math.floor(practiceScore)) : 0;
     const admin = createSupabaseAdmin();
 
