@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { createSupabaseAdmin } from "@/lib/supabaseServer";
+import { parseBody, PatchProfileSchema } from "@/lib/validation/schemas";
 
 /**
  * PATCH /api/profile
@@ -12,8 +13,11 @@ export async function PATCH(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
+  const body = await parseBody(request, PatchProfileSchema);
+  if (body instanceof NextResponse) return body;
+
   try {
-    const { avatarId, titleId, frameId } = await request.json();
+    const { avatarId, titleId, frameId } = body;
 
     const updates: Record<string, string | null> = {};
     if (avatarId !== undefined) updates["avatar_id"] = avatarId;
