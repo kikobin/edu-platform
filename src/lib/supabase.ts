@@ -11,6 +11,7 @@
  * 3. Выполни SQL из /docs/supabase-schema.sql в Supabase SQL Editor
  * 4. Выполни SQL из /docs/supabase-admin-schema.sql для таблиц админки
  */
+import "server-only";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
