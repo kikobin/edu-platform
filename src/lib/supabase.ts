@@ -396,17 +396,190 @@ export const supabase = {
 
   // ── Curator ───────────────────────────────────────────────────────────────────
 
-  async getCuratorStudents(curatorId: string): Promise<string[]> {
+  async getCuratorStudents(curatorAppUserId: string): Promise<string[]> {
+    if (!supabaseEnabled) return [];
+    try {
+      // 1. Resolve curator's auth UUID from app_user_id.
+      const cp = await supabaseFetch(
+        `/profiles?app_user_id=eq.${encodeURIComponent(curatorAppUserId)}&select=id&limit=1`
+      );
+      if (!cp.ok) return [];
+      const curatorRows: { id: string }[] = await cp.json();
+      const curatorUuid = curatorRows[0]?.id;
+      if (!curatorUuid) return [];
+
+      // 2. Fetch all groups owned by this curator.
+      const gr = await supabaseFetch(
+        `/groups?curator_id=eq.${curatorUuid}&select=id`
+      );
+      if (!gr.ok) return [];
+      const groups: { id: string }[] = await gr.json();
+      if (groups.length === 0) return [];
+      const groupIds = groups.map((g) => g.id);
+
+      // 3. Fetch students belonging to any of those groups.
+      const sp = await supabaseFetch(
+        `/profiles?group_id=in.(${groupIds.join(",")})&select=app_user_id`
+      );
+      if (!sp.ok) return [];
+      const students: { app_user_id: string }[] = await sp.json();
+      return students.map((s) => s.app_user_id);
+    } catch {
+      return [];
+    }
+  },
+
+  // ── Groups ────────────────────────────────────────────────────────────────────
+
+  async getGroupsByCurator(curatorAppUserId: string): Promise<
+    { id: string; name: string; tier: "smart" | "vip"; created_at: string; students_count: number }[]
+  > {
+    if (!supabaseEnabled) return [];
+    try {
+      const cp = await supabaseFetch(
+        `/profiles?app_user_id=eq.${encodeURIComponent(curatorAppUserId)}&select=id&limit=1`
+      );
+      if (!cp.ok) return [];
+      const curatorRows: { id: string }[] = await cp.json();
+      const curatorUuid = curatorRows[0]?.id;
+      if (!curatorUuid) return [];
+
+      const gr = await supabaseFetch(
+        `/groups?curator_id=eq.${curatorUuid}&select=id,name,tier,created_at&order=created_at.asc`
+      );
+      if (!gr.ok) return [];
+      const groups: { id: string; name: string; tier: "smart" | "vip"; created_at: string }[] = await gr.json();
+      if (groups.length === 0) return [];
+
+      // Count students per group in a single query
+      const counts = await supabaseFetch(
+        `/profiles?group_id=in.(${groups.map((g) => g.id).join(",")})&select=group_id`
+      );
+      const countRows: { group_id: string }[] = counts.ok ? await counts.json() : [];
+      const countByGroup = new Map<string, number>();
+      for (const row of countRows) {
+        countByGroup.set(row.group_id, (countByGroup.get(row.group_id) ?? 0) + 1);
+      }
+
+      return groups.map((g) => ({ ...g, students_count: countByGroup.get(g.id) ?? 0 }));
+    } catch {
+      return [];
+    }
+  },
+
+  async getGroupById(groupId: string): Promise<
+    { id: string; name: string; tier: "smart" | "vip"; curator_id: string; created_at: string } | null
+  > {
+    if (!supabaseEnabled) return null;
+    try {
+      const res = await supabaseFetch(
+        `/groups?id=eq.${groupId}&select=id,name,tier,curator_id,created_at&limit=1`
+      );
+      if (!res.ok) return null;
+      const rows: { id: string; name: string; tier: "smart" | "vip"; curator_id: string; created_at: string }[] = await res.json();
+      return rows[0] ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  async getStudentsInGroup(groupId: string): Promise<
+    { id: string; app_user_id: string; name: string; avatar_id: string; xp: number; tier: string }[]
+  > {
     if (!supabaseEnabled) return [];
     try {
       const res = await supabaseFetch(
-        `/curator_students?curator_id=eq.${curatorId}&select=student_id`
+        `/profiles?group_id=eq.${groupId}&select=id,app_user_id,name,avatar_id,xp,tier&order=name.asc`
       );
       if (!res.ok) return [];
-      const rows: { student_id: string }[] = await res.json();
-      return rows.map((r) => r.student_id);
+      return await res.json();
     } catch {
       return [];
+    }
+  },
+
+  async getUnassignedStudentsByTier(tier: "smart" | "vip"): Promise<
+    { id: string; app_user_id: string; name: string; avatar_id: string }[]
+  > {
+    if (!supabaseEnabled) return [];
+    try {
+      const res = await supabaseFetch(
+        `/profiles?tier=eq.${tier}&group_id=is.null&role=eq.student&select=id,app_user_id,name,avatar_id&order=name.asc`
+      );
+      if (!res.ok) return [];
+      return await res.json();
+    } catch {
+      return [];
+    }
+  },
+
+  async createGroup(curatorUuid: string, name: string, tier: "smart" | "vip"): Promise<string | null> {
+    if (!supabaseEnabled) return null;
+    try {
+      const res = await supabaseFetch(`/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({ name, curator_id: curatorUuid, tier }),
+      });
+      if (!res.ok) return null;
+      const rows: { id: string }[] = await res.json();
+      return rows[0]?.id ?? null;
+    } catch {
+      return null;
+    }
+  },
+
+  async renameGroup(groupId: string, name: string): Promise<boolean> {
+    if (!supabaseEnabled) return false;
+    try {
+      const res = await supabaseFetch(`/groups?id=eq.${groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async deleteGroup(groupId: string): Promise<boolean> {
+    if (!supabaseEnabled) return false;
+    try {
+      const res = await supabaseFetch(`/groups?id=eq.${groupId}`, { method: "DELETE" });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /** Assigns a student to a group. Returns false if the student's tier doesn't match the group's tier. */
+  async addStudentToGroup(studentProfileId: string, groupId: string): Promise<boolean> {
+    if (!supabaseEnabled) return false;
+    try {
+      const res = await supabaseFetch(`/profiles?id=eq.${studentProfileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group_id: groupId }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  /** Removes a student from their current group; tier is preserved per product spec. */
+  async removeStudentFromGroup(studentProfileId: string): Promise<boolean> {
+    if (!supabaseEnabled) return false;
+    try {
+      const res = await supabaseFetch(`/profiles?id=eq.${studentProfileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ group_id: null }),
+      });
+      return res.ok;
+    } catch {
+      return false;
     }
   },
 };
