@@ -32,13 +32,16 @@ export default function ProfilePage() {
   const submittedHomeworks = lessons.filter((l) => getLesson(l.id).homeworkStatus === "submitted").length;
   const totalLessons       = lessons.length;
 
-  // If user isn't populated yet, render AppLayout so the spinner shows.
-  // Without this, the whole page (including AppLayout) is absent → blank white screen.
-  // AppLayout + useSession handle the redirect to /login if the session is actually invalid.
+  // If user isn't populated yet, render a visible loader inside AppLayout.
+  // Returning an empty <div /> produced an apparently blank screen when AppLayout
+  // had already passed its own ready-gate. AppLayout + useSession handle the
+  // redirect to /login if the session is actually invalid.
   if (!user) {
     return (
       <AppLayout wide>
-        <div />
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl border-4 border-primary/15 border-t-primary animate-spin" />
+        </div>
       </AppLayout>
     );
   }
