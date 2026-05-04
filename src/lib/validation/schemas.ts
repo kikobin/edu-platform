@@ -36,6 +36,21 @@ export const PatchSubmissionSchema = z.object({
   // The route fetches the submission from DB and uses its authoritative values.
 });
 
+// ─── Groups ───────────────────────────────────────────────────────────────────
+
+export const CreateGroupSchema = z.object({
+  name: z.string().min(1).max(80),
+  tier: z.enum(["smart", "vip"]),
+});
+
+export const RenameGroupSchema = z.object({
+  name: z.string().min(1).max(80),
+});
+
+export const AddStudentToGroupSchema = z.object({
+  studentProfileId: z.string().uuid(),
+});
+
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
 export const PatchProfileSchema = z.object({
