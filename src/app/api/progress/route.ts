@@ -63,36 +63,6 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
-
-  try {
-    const { userId, name, avatarId, xp } = await request.json();
-
-    if (!userId || typeof xp !== "number") {
-      return NextResponse.json({ error: "Invalid data" }, { status: 400 });
-    }
-
-    // Users can only update their own progress
-    if (auth.appUserId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    await supabase.upsertProgress({
-      user_id:   userId,
-      name:      String(name ?? userId),
-      avatar_id: String(avatarId ?? "avatar_1"),
-      xp:        Math.max(0, Math.floor(xp)),
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    Sentry.captureException(err, { tags: { route: "POST /api/progress" } });
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
 export async function DELETE() {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;

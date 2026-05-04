@@ -99,19 +99,6 @@ export const supabase = {
     }
   },
 
-  async upsertProgress(row: SupabaseRow): Promise<void> {
-    if (!supabaseEnabled) return;
-    const res = await supabaseFetch("/user_progress", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify(row),
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => res.statusText);
-      throw new Error(`upsertProgress failed: ${res.status} ${text}`);
-    }
-  },
-
   async createSubmission(
     data: Omit<SubmissionRow, "id" | "submitted_at" | "reviewed_at">
   ): Promise<void> {
