@@ -1,8 +1,17 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useMemo } from "react";
 import { useStudyProgressStore } from "@/store/studyProgressStore";
 import { StepShell } from "./StepShell";
+import type { StepperItem } from "./StepStepper";
+
+export interface StepDescriptor {
+  n: number;
+  /** Step key in progress store: "step-N" for practice, "submission" for homework. */
+  key: string;
+  title: string;
+  href: string;
+}
 
 interface Props {
   lessonSlug: string;
@@ -10,18 +19,20 @@ interface Props {
   title: string;
   description?: string;
   stepLabel: string;
-  totalSteps: number;
+  currentStepN: number;
+  /** All steps in the lesson, in order — drives the stepper. */
+  allSteps: StepDescriptor[];
   backHref: string;
   prevHref: string | null;
   nextHref: string | null;
-  /** Step key (e.g. "step-1", "submission"). Used to read done-status. */
+  /** Step key of the current step. Used to read done-status. */
   stepKey: string;
   children: ReactNode;
 }
 
 /**
- * Client-side wrapper that hydrates the lesson's dynamic-step progress and
- * passes done-state into the dumb StepShell.
+ * Client wrapper that hydrates dynamic-step progress and feeds the dumb StepShell
+ * with a per-step done map for the stepper.
  */
 export function StepShellClient({
   lessonSlug,
@@ -29,7 +40,8 @@ export function StepShellClient({
   title,
   description,
   stepLabel,
-  totalSteps,
+  currentStepN,
+  allSteps,
   backHref,
   prevHref,
   nextHref,
@@ -42,9 +54,20 @@ export function StepShellClient({
   }, [hydrate, lessonSlug]);
 
   const isDone = useStudyProgressStore((s) => s.isStepDone(lessonSlug, stepKey));
-  const doneCount = useStudyProgressStore((s) => s.doneCount(lessonSlug));
+  const doneSet = useStudyProgressStore(
+    (s) => s.byLesson[lessonSlug] ?? new Set<string>()
+  );
 
-  const progressPct = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
+  const stepperItems: StepperItem[] = useMemo(
+    () =>
+      allSteps.map((s) => ({
+        n: s.n,
+        title: s.title,
+        href: s.href,
+        done: doneSet.has(s.key),
+      })),
+    [allSteps, doneSet]
+  );
 
   return (
     <StepShell
@@ -52,7 +75,8 @@ export function StepShellClient({
       title={title}
       description={description}
       stepLabel={stepLabel}
-      progressPercent={progressPct}
+      currentStepN={currentStepN}
+      steps={stepperItems}
       backHref={backHref}
       prevHref={prevHref}
       nextHref={nextHref}

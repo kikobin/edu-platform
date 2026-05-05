@@ -528,8 +528,12 @@ export const supabase = {
   > {
     if (!supabaseEnabled) return [];
     try {
+      const tierFilter =
+        tier === "smart"
+          ? "or=(tier.eq.smart,tier.is.null,tier.eq.base,tier.eq.basic)"
+          : "tier=eq.vip";
       const res = await supabaseFetch(
-        `/profiles?tier=eq.${tier}&group_id=is.null&role=eq.student&select=id,app_user_id,name,avatar_id&order=name.asc`
+        `/profiles?${tierFilter}&group_id=is.null&role=eq.student&select=id,app_user_id,name,avatar_id&order=name.asc`
       );
       if (!res.ok) return [];
       return await res.json();
@@ -590,10 +594,12 @@ export const supabase = {
   async addStudentToGroup(studentProfileId: string, groupId: string): Promise<boolean> {
     if (!supabaseEnabled) return false;
     try {
+      const group = await this.getGroupById(groupId);
+      if (!group) return false;
       const res = await supabaseFetch(`/profiles?id=eq.${studentProfileId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ group_id: groupId }),
+        body: JSON.stringify({ group_id: groupId, tier: group.tier }),
       });
       return res.ok;
     } catch {

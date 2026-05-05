@@ -144,7 +144,10 @@ function SubmissionCard({
 
       {sub.status !== "pending" && (
         <button
-          onClick={() => handle("pending")}
+          onClick={() => {
+            if (!confirm("Сбросить статус в «Ожидает»?")) return;
+            handle("pending");
+          }}
           disabled={loading}
           className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
@@ -244,6 +247,8 @@ export default function AdminHomeworkPage() {
     setSubmissions((prev) =>
       prev.map((s) => s.id === id ? { ...s, status, curatorComment: comment } : s)
     );
+    // Deselect after any status change — stale selected ids cause silent bulk-approve mismatches.
+    setSelected((prev) => { const next = new Set(prev); next.delete(id); return next; });
   };
 
   const counts = {

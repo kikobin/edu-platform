@@ -11,6 +11,7 @@ create table if not exists profiles (
   title_id        text,
   frame_id        text,
   role            text not null default 'student',
+  tier            text not null default 'smart',
   xp              integer not null default 0,
   streak          integer not null default 1,      -- updated by GET /api/me on each visit
   last_visit_date date,                             -- used to compute streak server-side
@@ -77,6 +78,10 @@ alter table profiles add column if not exists title_id text;
 alter table profiles add column if not exists frame_id text;
 alter table profiles add column if not exists app_user_id text;
 alter table profiles add column if not exists role text not null default 'student';
+alter table profiles add column if not exists tier text not null default 'smart';
+alter table profiles alter column tier set default 'smart';
+update profiles set tier = 'smart'
+where role = 'student' and (tier is null or tier in ('base', 'basic'));
 alter table profiles add column if not exists streak integer not null default 1;
 alter table profiles add column if not exists last_visit_date date;
 -- Add unique constraint on app_user_id if missing:

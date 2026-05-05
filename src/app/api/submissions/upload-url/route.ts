@@ -13,7 +13,7 @@ function safeBaseName(name: string): string {
   return cleaned.slice(0, 80) || "file";
 }
 
-const SAFE_ID_RE = /^[a-zA-Z0-9._-]+$/;
+const SAFE_ID_RE = /^[a-zA-Z0-9._:-]+$/;
 
 export async function POST(request: Request) {
   const auth = await requireAuth();

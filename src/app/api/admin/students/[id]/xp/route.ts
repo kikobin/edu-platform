@@ -28,10 +28,22 @@ export async function PATCH(
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
+  // Guard: don't let XP go below zero.
+  if (body.delta < 0 && profile.xp + body.delta < 0) {
+    return NextResponse.json(
+      { error: `Cannot reduce XP below 0 (current: ${profile.xp})` },
+      { status: 422 }
+    );
+  }
+
   // Admin adjustments use a timestamped source so awardXP's idempotency
   // doesn't collapse multiple distinct adjustments into one.
   const sourceId = `admin:adjust:${params.id}:${Date.now()}`;
   const newTotal = await awardXPByAppUserId(params.id, sourceId, body.delta);
 
-  return NextResponse.json({ ok: true, xp: newTotal ?? profile.xp });
+  if (newTotal === null) {
+    return NextResponse.json({ error: "XP update failed — profile not found" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, xp: newTotal });
 }

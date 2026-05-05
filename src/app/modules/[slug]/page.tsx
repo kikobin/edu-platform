@@ -6,6 +6,9 @@ import { getModuleBySlug, MODULES } from "@/content/study-modules";
 import { getLessonsByModule } from "@/content/study-lessons";
 import { ModuleLessonsList } from "@/components/study/ModuleLessonsList";
 import { ChevronLeftIcon, ToolIcon } from "@/components/brand/Icon";
+import { createSupabaseServer, createSupabaseAdmin } from "@/lib/supabaseServer";
+
+export const dynamic = "force-dynamic";
 
 interface Params { slug: string }
 
@@ -19,11 +22,30 @@ export function generateMetadata({ params }: { params: Params }): Metadata {
   return { title: `${mod.title} · edu-platform`, description: mod.subtitle };
 }
 
-export default function ModulePage({ params }: { params: Params }) {
+async function getCurrentTier(): Promise<"smart" | "vip" | undefined> {
+  try {
+    const server = createSupabaseServer();
+    const { data: { user } } = await server.auth.getUser();
+    if (!user) return undefined;
+    const admin = createSupabaseAdmin();
+    const { data } = await admin
+      .from("profiles")
+      .select("tier")
+      .eq("id", user.id)
+      .maybeSingle();
+    const t = data?.tier as string | null;
+    return t === "smart" || t === "vip" ? t : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export default async function ModulePage({ params }: { params: Params }) {
   const mod = getModuleBySlug(params.slug);
   if (!mod) notFound();
 
-  const lessons = getLessonsByModule(mod.slug);
+  const tier = await getCurrentTier();
+  const lessons = getLessonsByModule(mod.slug, tier);
 
   return (
     <AppLayout wide>

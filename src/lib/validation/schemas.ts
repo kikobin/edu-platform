@@ -102,10 +102,12 @@ export const PatchProfileSchema = z.object({
 
 // ─── Admin XP adjustment ──────────────────────────────────────────────────────
 
-// Cap admin XP grants so a malformed UI or accidental script can't push a
-// student to absurd numbers. 10k is well above any single legitimate award.
+// Cap admin XP adjustments so a malformed UI can't push a student to absurd numbers.
+// Negative delta is allowed (subtract XP); zero is rejected.
 export const AdminAdjustXPSchema = z.object({
-  delta: z.number().int().positive().max(10_000),
+  delta: z.number().int().min(-10_000).max(10_000).refine((v) => v !== 0, {
+    message: "delta must be non-zero",
+  }),
 });
 
 // ─── Path param validators ────────────────────────────────────────────────────

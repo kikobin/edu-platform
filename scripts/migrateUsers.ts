@@ -103,6 +103,7 @@ async function migrate() {
         name:        user.name,
         avatar_id:   user.avatarId,
         role:        user.role,
+        tier:        "smart",
         xp:          0,
       });
 

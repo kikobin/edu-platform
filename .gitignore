@@ -47,3 +47,7 @@ scripts/gen-*.py
 
 # Stray local images
 /image.png
+
+# Local Netlify folder
+.netlify
+.vercel

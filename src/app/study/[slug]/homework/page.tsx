@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,11 +15,19 @@ import {
   ChevronLeftIcon,
 } from "@/components/brand/Icon";
 import { cn } from "@/lib/utils";
+import { ALLOWED_UPLOAD_MIME, MAX_UPLOAD_BYTES } from "@/lib/validation/schemas";
 
 interface ExistingSubmission {
   status: "pending" | "approved" | "revision";
   curatorComment?: string;
   submittedAt?: string;
+}
+
+interface UploadedFile {
+  fileUrl:  string;
+  fileMime: string;
+  fileSize: number;
+  name:     string;
 }
 
 const STATUS_META = {
@@ -43,6 +51,13 @@ const STATUS_META = {
   },
 } as const;
 
+const ACCEPT = ALLOWED_UPLOAD_MIME.join(",");
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} КБ`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
+
 export default function HomeworkPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
@@ -56,6 +71,13 @@ export default function HomeworkPage() {
   const [error, setError] = useState<string | null>(null);
   const [existing, setExisting] = useState<ExistingSubmission | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     if (!slug) return;
@@ -103,9 +125,88 @@ export default function HomeworkPage() {
     );
   }
 
-  const canSubmit = url.trim().length > 0 && !submitting;
+  const hasContent = url.trim().length > 0 || uploadedFile !== null;
+  const canSubmit = hasContent && !submitting && !uploading;
   const isSubmitted = existing && existing.status !== "revision";
   const canResubmit = !existing || existing.status === "revision";
+
+  // ── File upload ────────────────────────────────────────────────────────────
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!e.target.files) return;
+    e.target.value = "";
+    if (!file) return;
+
+    setUploadError(null);
+
+    if (!ALLOWED_UPLOAD_MIME.includes(file.type as typeof ALLOWED_UPLOAD_MIME[number])) {
+      setUploadError("Неподдерживаемый формат. Можно: изображение, видео или PDF.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setUploadError(`Файл слишком большой (максимум 50 МБ, у тебя ${formatBytes(file.size)}).`);
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadedFile(null);
+
+    try {
+      // 1. Get presigned URL
+      const urlRes = await fetch("/api/submissions/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename:    file.name,
+          contentType: file.type,
+          size:        file.size,
+          lessonId:    slug,
+          homeworkId:  `${slug}:homework`,
+        }),
+      });
+      if (!urlRes.ok) {
+        const body = await urlRes.json().catch(() => ({}));
+        throw new Error(body.error ?? "Не удалось подготовить загрузку");
+      }
+      const { uploadUrl, fileUrl } = await urlRes.json();
+
+      // 2. Upload file with XHR for progress tracking
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) {
+            setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`Ошибка загрузки: ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("Сетевая ошибка при загрузке"));
+        xhr.send(file);
+      });
+
+      setUploadProgress(100);
+      setUploadedFile({ fileUrl, fileMime: file.type, fileSize: file.size, name: file.name });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Ошибка загрузки файла");
+      setUploadProgress(0);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeFile = () => {
+    setUploadedFile(null);
+    setUploadProgress(0);
+    setUploadError(null);
+  };
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
 
   const onSubmit = async () => {
     if (!canSubmit) return;
@@ -115,8 +216,11 @@ export default function HomeworkPage() {
     const levelObj = pickedLevel
       ? homework.levels.find((l) => l.key === pickedLevel)
       : null;
+
+    // Determine submitType and content
+    const submitType = uploadedFile ? "file" : "link";
     const composedContent = [
-      url.trim(),
+      url.trim() || uploadedFile?.name || "",
       levelObj && `\nУровень: ${levelObj.title} (${levelObj.level})`,
     ]
       .filter(Boolean)
@@ -133,7 +237,12 @@ export default function HomeworkPage() {
           lessonTitle:   lesson.title,
           homeworkTitle: "Домашняя работа",
           content:       composedContent,
-          submitType:    "link",
+          submitType,
+          ...(uploadedFile && {
+            fileUrl:  uploadedFile.fileUrl,
+            fileMime: uploadedFile.fileMime,
+            fileSize: uploadedFile.fileSize,
+          }),
         }),
       });
       if (!res.ok) {
@@ -143,6 +252,8 @@ export default function HomeworkPage() {
       showToast("Работа отправлена", "Куратор проверит и пришлёт ответ.");
       setUrl("");
       setPickedLevel(null);
+      setUploadedFile(null);
+      setUploadProgress(0);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка отправки");
@@ -216,14 +327,124 @@ export default function HomeworkPage() {
                   </div>
                 )}
 
+                {/* ── File upload block ─────────────────────────────────── */}
                 <div className="bg-white rounded-xl border border-border p-6 md:p-7">
-                  <label className="block text-[14px] font-semibold text-text mb-2">
-                    Ссылка на твою работу
+                  <p className="text-[14px] font-semibold text-text mb-1">
+                    Файл к работе
+                  </p>
+                  <p className="text-[12px] text-text-muted mb-4">
+                    Подойдут изображение, видео или PDF до 50 МБ.
+                  </p>
+
+                  {/* Uploaded file preview */}
+                  <AnimatePresence>
+                    {uploadedFile && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg bg-success/8 border border-success/25 mb-4"
+                      >
+                        <span className="text-success text-[18px] leading-none">✓</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-text truncate">
+                            {uploadedFile.name}
+                          </p>
+                          <p className="text-[11px] text-text-muted">
+                            {formatBytes(uploadedFile.fileSize)} · готово к загрузке
+                          </p>
+                        </div>
+                        <button
+                          onClick={removeFile}
+                          className="text-[12px] text-text-muted hover:text-error transition-colors shrink-0 font-medium"
+                        >
+                          Удалить
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Upload progress bar */}
+                  <AnimatePresence>
+                    {uploading && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="mb-4"
+                      >
+                        <div className="flex justify-between text-[11px] text-text-muted mb-1.5">
+                          <span>Загружается…</span>
+                          <span>{uploadProgress}%</span>
+                        </div>
+                        <div className="h-1.5 bg-border rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-primary rounded-full"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${uploadProgress}%` }}
+                            transition={{ ease: "linear", duration: 0.2 }}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Upload error */}
+                  <AnimatePresence>
+                    {uploadError && (
+                      <motion.p
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-[12px] text-error mb-3"
+                      >
+                        {uploadError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPT}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    id="hw-file-input"
+                  />
+
+                  {!uploadedFile && !uploading && (
+                    <label
+                      htmlFor="hw-file-input"
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-2 w-full",
+                        "rounded-lg border-2 border-dashed border-border",
+                        "py-8 px-4 cursor-pointer",
+                        "hover:border-primary/40 hover:bg-primary/3",
+                        "transition-colors text-center"
+                      )}
+                    >
+                      <span className="text-[28px] leading-none select-none">📎</span>
+                      <span className="text-[13px] font-medium text-text">
+                        Нажми, чтобы выбрать файл
+                      </span>
+                      <span className="text-[11px] text-text-muted">
+                        JPG, PNG, MP4, MOV, WEBM, PDF — до 50 МБ
+                      </span>
+                    </label>
+                  )}
+                </div>
+
+                {/* ── URL input block ───────────────────────────────────── */}
+                <div className="bg-white rounded-xl border border-border p-6 md:p-7">
+                  <label htmlFor="hw-url-input" className="block text-[14px] font-semibold text-text mb-2">
+                    Или ссылка на работу
                   </label>
                   <p className="text-[12px] text-text-muted mb-3">
                     Codex / Tilda / Netlify / GitHub / Telegram-бот — куда выложил.
                   </p>
                   <input
+                    id="hw-url-input"
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}

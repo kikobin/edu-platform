@@ -72,7 +72,7 @@ export async function GET(request: Request) {
       titleId:  profile?.title_id ?? null,
       frameId:  profile?.frame_id ?? null,
       streak:   newStreak,
-      tier:     profile?.tier ?? null,
+      tier:     profile?.tier ?? "smart",
     });
   } catch (err) {
     Sentry.captureException(err, { tags: { route: "GET /api/me" } });

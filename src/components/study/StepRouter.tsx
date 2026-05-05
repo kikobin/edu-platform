@@ -1,7 +1,6 @@
 "use client";
 
 import type { StudyStep } from "@/types/study";
-import { ToolIcon } from "@/components/brand/Icon";
 import {
   WhichTagMiniContent,
   FindLayerContent,
@@ -28,6 +27,42 @@ import { Quiz } from "./interactives/Quiz";
 import { HallucinationSpotter } from "./interactives/HallucinationSpotter";
 import { FixPrompt } from "./interactives/FixPrompt";
 import { RoleSwap } from "./interactives/RoleSwap";
+import { useStepDone } from "./useStepDone";
+
+// Fallback for steps that have no interactive kind (e.g. lesson-5 imported from edu-main).
+// Shows the step title/description and lets the student self-report completion.
+function StepPlaceholder({
+  lessonSlug,
+  stepKey,
+  step,
+}: {
+  lessonSlug: string;
+  stepKey: string;
+  step: StudyStep;
+}) {
+  const { isDone, markDone } = useStepDone(lessonSlug, stepKey);
+  return (
+    <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+      {step.title && (
+        <h3 className="text-[16px] font-semibold text-text">{step.title}</h3>
+      )}
+      {step.description && (
+        <p className="text-[14px] text-text-muted leading-relaxed">{step.description}</p>
+      )}
+      <button
+        onClick={markDone}
+        disabled={isDone}
+        className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+          isDone
+            ? "bg-green-50 text-green-600 border border-green-200 cursor-default"
+            : "bg-primary text-white hover:bg-primary/90"
+        }`}
+      >
+        {isDone ? "✓ Выполнено" : "Я разобрался"}
+      </button>
+    </div>
+  );
+}
 
 interface Props {
   lessonSlug: string;
@@ -50,14 +85,7 @@ export function StepRouter({ lessonSlug, lessonTitle, videoId, step }: Props) {
     step.completion.type === "practice" ? step.completion.key : "submission";
 
   if (!step.kind || !step.content) {
-    return (
-      <div className="bg-white rounded-xl border border-border p-8 text-center text-text-muted">
-        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-bg mb-3">
-          <ToolIcon size={20} />
-        </div>
-        <p className="text-[14px]">Этот тип шага пока не поддержан.</p>
-      </div>
-    );
+    return <StepPlaceholder lessonSlug={lessonSlug} stepKey={stepKey} step={step} />;
   }
 
   switch (step.kind) {

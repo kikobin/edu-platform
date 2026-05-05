@@ -47,43 +47,48 @@ export const AI_CREATOR_1_CONTENT: StudyLessonContent = {
         items: [
           {
             id: "p1",
-            label: "Студент будущего",
+            label: "Кот-космонавт",
             tool: "Midjourney",
-            style: "cinematic",
+            style: "sci-fi cute",
             prompt:
-              "A young student sitting at a futuristic glass desk in Almaty 2045, holographic notebooks floating around, soft blue neon ambient light, ultra-detailed, cinematic 35mm photography, shallow depth of field --ar 16:9",
+              "A cute cat astronaut floating inside a spaceship window, Earth glowing in the background, soft cinematic light, detailed fur, playful expression, ultra-detailed, 35mm photography look --ar 16:9",
+            previewImageUrl: "/ai-creator/preview/lesson-1/space-cat.webp",
           },
           {
             id: "p2",
+            label: "Киберпанк-лиса",
+            tool: "Midjourney",
+            style: "cyberpunk",
+            prompt:
+              "A cyberpunk fox wearing a neon jacket in a rainy futuristic alley, glowing signs reflected in puddles, cinematic lighting, ultra-detailed fur, vibrant magenta and cyan palette --ar 3:4",
+            previewImageUrl: "/ai-creator/preview/lesson-1/cyberpunk-fox.webp",
+          },
+          {
+            id: "p3",
             label: "Книга оживает",
             tool: "Midjourney",
             style: "fantasy illustration",
             prompt:
-              "Open book with magical light spilling out of its pages, paper birds flying upward, golden particles, Studio Ghibli inspired illustration, warm sunset colors, intricate details --ar 3:4",
-          },
-          {
-            id: "p3",
-            label: "Кочевник в космосе",
-            tool: "Midjourney",
-            style: "sci-fi",
-            prompt:
-              "A Kazakh nomad warrior in traditional armor, standing on the rings of Saturn, vast space behind, dramatic lighting, hyperrealistic concept art, deep blacks and gold accents --ar 16:9",
+              "Open book with magical light spilling out of its pages, paper birds flying upward, golden particles, warm sunset colors, intricate details, fantasy illustration --ar 3:4",
+            previewImageUrl: "/ai-creator/preview/lesson-1/magic-book.webp",
           },
           {
             id: "p4",
-            label: "Минимализм-постер",
+            label: "Робот-студент",
             tool: "Gemini Image",
-            style: "minimal poster",
+            style: "friendly robot",
             prompt:
-              "Minimal flat-design poster about reading, single book silhouette, 3 muted pastel colors, generous negative space, swiss typography placeholder, high contrast --ar 2:3",
+              "A friendly robot student sitting at a school desk, notebook open, warm classroom light, curious eyes, colorful educational atmosphere, polished 3D illustration --ar 4:5",
+            previewImageUrl: "/ai-creator/preview/lesson-1/robot-student.webp",
           },
           {
             id: "p5",
-            label: "Уличный портрет",
+            label: "Пиксель-дракон",
             tool: "Midjourney",
-            style: "documentary",
+            style: "pixel art",
             prompt:
-              "Candid street portrait of a curious teenager looking up at the city, 50mm prime lens, golden hour, film grain, Kodak Portra 400 colors, natural skin tones --ar 4:5",
+              "A tiny pixel-art dragon guarding a glowing treasure chest, cozy cave background, 16-bit game style, crisp pixels, charming fantasy mood --ar 1:1",
+            previewImageUrl: "/ai-creator/preview/lesson-1/pixel-dragon.webp",
           },
         ],
         successNote: "Один промт в кармане — теперь сгенерируй свой первый кадр.",
@@ -182,6 +187,7 @@ export const AI_CREATOR_2_CONTENT: StudyLessonContent = {
             style: "cinematic",
             prompt:
               "Cinematic portrait of [SUBJECT], anamorphic lens flare, soft rim light from the left, shallow depth of field, kodak vision3 color grade, 35mm film grain, dramatic shadows --ar 2:3 --style raw",
+            previewImageUrl: "/ai-creator/preview/lesson-2/knight-portrait.webp",
           },
           {
             id: "p2",
@@ -190,6 +196,7 @@ export const AI_CREATOR_2_CONTENT: StudyLessonContent = {
             style: "anime",
             prompt:
               "[SUBJECT] in the style of modern anime, key frame illustration, vibrant cel-shading, expressive eyes, dynamic pose, soft sunset light, Makoto Shinkai inspired backgrounds --ar 16:9 --niji 6",
+            previewImageUrl: "/ai-creator/preview/lesson-2/wizard-fire.webp",
           },
           {
             id: "p3",
@@ -198,6 +205,7 @@ export const AI_CREATOR_2_CONTENT: StudyLessonContent = {
             style: "3d toy",
             prompt:
               "Cute collectible figurine of [SUBJECT], soft pastel colors, glossy plastic finish, studio lighting, white seamless background, octane render, ultra-detailed, isometric angle --ar 1:1",
+            previewImageUrl: "/ai-creator/preview/lesson-2/futuristic-chef.webp",
           },
           {
             id: "p4",
@@ -214,6 +222,7 @@ export const AI_CREATOR_2_CONTENT: StudyLessonContent = {
             style: "ghibli",
             prompt:
               "[SUBJECT] in Studio Ghibli style, hand-painted backgrounds, warm pastel palette, soft cumulus clouds, gentle wind moving the grass, nostalgic mood, watercolor textures --ar 16:9",
+            previewImageUrl: "/ai-creator/preview/lesson-2/basketball-jump.webp",
           },
         ],
         successNote: "Подставь свой Subject в [SUBJECT] и сгенерируй.",
@@ -312,6 +321,7 @@ export const AI_CREATOR_3_CONTENT: StudyLessonContent = {
             style: "film portrait",
             prompt:
               "Photorealistic portrait of [SUBJECT], 85mm prime lens, soft north window light, Kodak Portra 400 film, natural skin tones, gentle film grain, calm expression --ar 4:5 --style raw",
+            previewImageUrl: "/ai-creator/preview/lesson-3/cozy-forest-house.webp",
           },
           {
             id: "p2",
@@ -320,6 +330,7 @@ export const AI_CREATOR_3_CONTENT: StudyLessonContent = {
             style: "street",
             prompt:
               "Documentary street photography of [SUBJECT] in [CITY], 35mm Leica, candid moment, late afternoon golden light, Cinestill 800T film, slight motion blur, soft contrast --ar 3:2",
+            previewImageUrl: "/ai-creator/preview/lesson-3/modern-house.webp",
           },
           {
             id: "p3",
@@ -328,6 +339,7 @@ export const AI_CREATOR_3_CONTENT: StudyLessonContent = {
             style: "studio",
             prompt:
               "Studio commercial photo of [SUBJECT], Profoto strobe lighting, three-point setup, seamless white background, hasselblad medium format, ultra sharp, advertising quality --ar 1:1",
+            previewImageUrl: "/ai-creator/preview/lesson-3/scifi-house.webp",
           },
           {
             id: "p4",
@@ -336,6 +348,7 @@ export const AI_CREATOR_3_CONTENT: StudyLessonContent = {
             style: "drone",
             prompt:
               "Aerial drone shot of [PLACE], top-down 90° angle, golden hour, long shadows, Mavic 3 Pro Hasselblad camera, ultra-detailed, atmospheric, photoreal --ar 16:9",
+            previewImageUrl: "/ai-creator/preview/lesson-3/horror-house.webp",
           },
           {
             id: "p5",
@@ -344,6 +357,7 @@ export const AI_CREATOR_3_CONTENT: StudyLessonContent = {
             style: "landscape",
             prompt:
               "Wide landscape of [PLACE] at sunset, Sony A7R V with 24-70mm GM, vibrant warm sky, leading lines, ND filter, RAW colors, ultra-realistic, National Geographic style --ar 21:9",
+            previewImageUrl: "/ai-creator/preview/lesson-3/anime-cottage.webp",
           },
         ],
         successNote: "Подставь Subject + место и запускай.",
@@ -442,6 +456,7 @@ export const AI_CREATOR_4_CONTENT: StudyLessonContent = {
             style: "sci-fi portrait",
             prompt:
               "Half-body portrait of an astronaut in a clean white space suit, helmet off, soft cinematic lighting, neutral facial expression front-facing, photoreal, 85mm lens --ar 2:3 --style raw",
+            previewImageUrl: "/ai-creator/preview/lesson-4/astronaut-portrait.webp",
           },
           {
             id: "p2",
@@ -450,6 +465,7 @@ export const AI_CREATOR_4_CONTENT: StudyLessonContent = {
             style: "historical",
             prompt:
               "Half-body portrait of a medieval knight without helmet, polished armor, neutral expression, front-facing, soft north light, photorealistic, oil painting touch --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-4/roman-senator.webp",
           },
           {
             id: "p3",
@@ -458,6 +474,7 @@ export const AI_CREATOR_4_CONTENT: StudyLessonContent = {
             style: "sport",
             prompt:
               "Half-body portrait of a young athlete in olympic uniform, gold medal around the neck, neutral confident expression facing camera, stadium background bokeh, golden hour --ar 2:3 --style raw",
+            previewImageUrl: "/ai-creator/preview/lesson-4/business-ny.webp",
           },
           {
             id: "p4",
@@ -466,6 +483,7 @@ export const AI_CREATOR_4_CONTENT: StudyLessonContent = {
             style: "documentary",
             prompt:
               "Half-body portrait of a young scientist in a clean modern lab, white coat, glasses, neutral expression front-facing, soft daylight from window, photoreal --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-4/victorian-noble.webp",
           },
           {
             id: "p5",
@@ -572,6 +590,7 @@ export const AI_CREATOR_5_CONTENT: StudyLessonContent = {
             style: "cinematic dolly",
             prompt:
               "Slow cinematic dolly-in towards the subject, gentle parallax on background elements, subject blinks once at the end, soft anamorphic depth of field",
+            previewImageUrl: "/ai-creator/preview/lesson-5/elderly-couple.webp",
           },
           {
             id: "p2",
@@ -580,6 +599,7 @@ export const AI_CREATOR_5_CONTENT: StudyLessonContent = {
             style: "atmospheric",
             prompt:
               "Subject stays still, gentle wind moves the hair and clothing, dust particles drift slowly through the air from left to right, soft volumetric light",
+            previewImageUrl: "/ai-creator/preview/lesson-5/grandmother.webp",
           },
           {
             id: "p3",
@@ -588,6 +608,7 @@ export const AI_CREATOR_5_CONTENT: StudyLessonContent = {
             style: "drone-like",
             prompt:
               "Smooth aerial-style camera arc circling the subject 120 degrees, slight upward tilt at the end, leaves and grass animate in the breeze, golden hour bloom",
+            previewImageUrl: "/ai-creator/preview/lesson-5/vintage-wedding.webp",
           },
           {
             id: "p4",
@@ -596,6 +617,7 @@ export const AI_CREATOR_5_CONTENT: StudyLessonContent = {
             style: "subtle portrait",
             prompt:
               "Subject slowly turns head 15 degrees toward camera, eyes blink twice naturally, hair settles, very subtle smile forms, static camera, photoreal",
+            previewImageUrl: "/ai-creator/preview/lesson-5/grandfather.webp",
           },
           {
             id: "p5",
@@ -702,6 +724,7 @@ export const AI_CREATOR_6_CONTENT: StudyLessonContent = {
             style: "minimal poster",
             prompt:
               "Minimalist poster about [TOPIC], single bold geometric object centered, swiss design, 3 muted pastel colors, generous negative space, no text, ultra-clean composition --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-6/swiss-minimal.webp",
           },
           {
             id: "p2",
@@ -710,6 +733,7 @@ export const AI_CREATOR_6_CONTENT: StudyLessonContent = {
             style: "retro 80s",
             prompt:
               "1980s retro poster about [TOPIC], synthwave gradient, neon grid horizon, bold geometric main object, sun in the background, no text, vintage paper texture --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-6/cola-cherry.webp",
           },
           {
             id: "p3",
@@ -718,6 +742,7 @@ export const AI_CREATOR_6_CONTENT: StudyLessonContent = {
             style: "movie poster",
             prompt:
               "Cinematic movie poster about [TOPIC], single dramatic main subject in the lower third, atmospheric sky with negative space at the top, moody lighting, cold and warm color contrast, no text --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-6/movie-poster.webp",
           },
           {
             id: "p4",
@@ -726,6 +751,7 @@ export const AI_CREATOR_6_CONTENT: StudyLessonContent = {
             style: "japanese",
             prompt:
               "Japanese-style traditional poster about [TOPIC], woodblock print influence, layered flat colors, calligraphic main object, vertical composition, mountain or wave background, no text --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-6/iced-tea.webp",
           },
           {
             id: "p5",
@@ -734,6 +760,7 @@ export const AI_CREATOR_6_CONTENT: StudyLessonContent = {
             style: "editorial illustration",
             prompt:
               "Editorial illustration poster about [TOPIC], hand-drawn texture, layered isometric composition, 4-color palette, science magazine cover style, no text, intricate details --ar 2:3",
+            previewImageUrl: "/ai-creator/preview/lesson-6/porsche-poster.webp",
           },
         ],
         successNote: "Подставь свой [TOPIC] и сгенерируй визуальную базу.",
