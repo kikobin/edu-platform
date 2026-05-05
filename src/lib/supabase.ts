@@ -63,6 +63,9 @@ type SubmissionRow = {
   submitted_at: string;
   reviewed_at?: string;
   version?: number;
+  file_url?: string;
+  file_mime?: string;
+  file_size?: number;
 };
 
 async function supabaseFetch(
@@ -142,22 +145,37 @@ export const supabase = {
   async updateSubmission(
     id: string,
     status: string,
-    curatorComment?: string
-  ): Promise<void> {
-    if (!supabaseEnabled) return;
-    const res = await supabaseFetch(`/submissions?id=eq.${id}`, {
+    curatorComment: string | undefined,
+    expectedVersion?: number
+  ): Promise<{ ok: true } | { ok: false; reason: "conflict" }> {
+    if (!supabaseEnabled) return { ok: true };
+    // Use Prefer: return=representation so PostgREST tells us how many rows it touched.
+    // Combined with version=eq.<n> in the URL this is an optimistic lock: if another
+    // request already moved the row to v+1 the WHERE clause matches 0 rows and we
+    // return a conflict instead of silently double-applying.
+    let qs = `id=eq.${id}`;
+    if (expectedVersion !== undefined) qs += `&version=eq.${expectedVersion}`;
+    const res = await supabaseFetch(`/submissions?${qs}`, {
       method: "PATCH",
-      headers: { Prefer: "return=minimal" },
+      headers: { Prefer: "return=representation" },
       body: JSON.stringify({
         status,
         curator_comment: curatorComment,
         reviewed_at: new Date().toISOString(),
+        // Bump version on every successful write — when the row had no
+        // version yet, this is what initialises it to 1.
+        version: (expectedVersion ?? 0) + 1,
       }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => res.statusText);
       throw new Error(`updateSubmission failed: ${res.status} ${text}`);
     }
+    if (expectedVersion !== undefined) {
+      const rows = await res.json().catch(() => []);
+      if (!Array.isArray(rows) || rows.length === 0) return { ok: false, reason: "conflict" };
+    }
+    return { ok: true };
   },
 
   /**
@@ -185,6 +203,9 @@ export const supabase = {
           reviewed_at:      null,
           submitted_at:     new Date().toISOString(),
           version:          ((existing as unknown as Record<string, unknown>).version as number ?? 1) + 1,
+          file_url:         data.file_url ?? null,
+          file_mime:        data.file_mime ?? null,
+          file_size:        data.file_size ?? null,
         }),
       });
       if (!res.ok) {
@@ -333,20 +354,42 @@ export const supabase = {
 
   // ── Profiles ─────────────────────────────────────────────────────────────────
 
-  async getStudentProfiles(studentIds?: string[]): Promise<
-    Array<{ app_user_id: string; name: string; avatar_id: string; xp: number }>
-  > {
-    if (!supabaseEnabled) return [];
+  async getStudentProfiles(opts?: {
+    studentIds?: string[];
+    search?:    string;
+    page?:      number;
+    pageSize?:  number;
+  }): Promise<{
+    rows:    Array<{ app_user_id: string; name: string; avatar_id: string; xp: number }>;
+    total:   number;
+  }> {
+    if (!supabaseEnabled) return { rows: [], total: 0 };
     try {
-      let qs = "/profiles?select=app_user_id,name,avatar_id,xp&role=eq.student&order=xp.desc";
-      if (studentIds?.length) {
-        qs += `&app_user_id=in.(${studentIds.map(encodeURIComponent).join(",")})`;
+      const page     = Math.max(1, opts?.page ?? 1);
+      const pageSize = Math.min(200, Math.max(1, opts?.pageSize ?? 50));
+      const offset   = (page - 1) * pageSize;
+
+      let qs = `/profiles?select=app_user_id,name,avatar_id,xp&role=eq.student&order=xp.desc&limit=${pageSize}&offset=${offset}`;
+      if (opts?.studentIds?.length) {
+        qs += `&app_user_id=in.(${opts.studentIds.map(encodeURIComponent).join(",")})`;
       }
-      const res = await supabaseFetch(qs);
-      if (!res.ok) return [];
-      return res.json();
+      if (opts?.search?.trim()) {
+        // PostgREST ilike with embedded wildcards. Escape % and _ to keep them literal.
+        const pat = opts.search.trim().replace(/[%_]/g, "\\$&");
+        qs += `&name=ilike.*${encodeURIComponent(pat)}*`;
+      }
+      const res = await supabaseFetch(qs, {
+        headers: { Prefer: "count=exact" },
+      });
+      if (!res.ok) return { rows: [], total: 0 };
+      const rows = await res.json();
+      // PostgREST returns total in Content-Range: 0-9/123
+      const range = res.headers.get("content-range") ?? "";
+      const totalStr = range.split("/")[1] ?? "0";
+      const total = totalStr === "*" ? rows.length : parseInt(totalStr, 10) || 0;
+      return { rows, total };
     } catch {
-      return [];
+      return { rows: [], total: 0 };
     }
   },
 
@@ -387,7 +430,7 @@ export const supabase = {
   async getCuratorStudents(curatorAppUserId: string): Promise<string[]> {
     if (!supabaseEnabled) return [];
     try {
-      // 1. Resolve curator's auth UUID from app_user_id.
+      // Step 1: resolve curator's auth UUID (PostgREST has no subqueries).
       const cp = await supabaseFetch(
         `/profiles?app_user_id=eq.${encodeURIComponent(curatorAppUserId)}&select=id&limit=1`
       );
@@ -396,22 +439,14 @@ export const supabase = {
       const curatorUuid = curatorRows[0]?.id;
       if (!curatorUuid) return [];
 
-      // 2. Fetch all groups owned by this curator.
-      const gr = await supabaseFetch(
-        `/groups?curator_id=eq.${curatorUuid}&select=id`
+      // Step 2: groups + students embedded in one round-trip (saves the 3rd request).
+      const join = await supabaseFetch(
+        `/groups?curator_id=eq.${curatorUuid}` +
+        `&select=students:profiles!profiles_group_id_fkey(app_user_id)`
       );
-      if (!gr.ok) return [];
-      const groups: { id: string }[] = await gr.json();
-      if (groups.length === 0) return [];
-      const groupIds = groups.map((g) => g.id);
-
-      // 3. Fetch students belonging to any of those groups.
-      const sp = await supabaseFetch(
-        `/profiles?group_id=in.(${groupIds.join(",")})&select=app_user_id`
-      );
-      if (!sp.ok) return [];
-      const students: { app_user_id: string }[] = await sp.json();
-      return students.map((s) => s.app_user_id);
+      if (!join.ok) return [];
+      const groups: { students: { app_user_id: string }[] }[] = await join.json();
+      return groups.flatMap((g) => (g.students ?? []).map((s) => s.app_user_id));
     } catch {
       return [];
     }
@@ -518,12 +553,20 @@ export const supabase = {
   },
 
   async renameGroup(groupId: string, name: string): Promise<boolean> {
+    return this.updateGroup(groupId, { name });
+  },
+
+  async updateGroup(
+    groupId: string,
+    patch: { name?: string; tier?: "smart" | "vip" }
+  ): Promise<boolean> {
     if (!supabaseEnabled) return false;
+    if (patch.name === undefined && patch.tier === undefined) return false;
     try {
       const res = await supabaseFetch(`/groups?id=eq.${groupId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify(patch),
       });
       return res.ok;
     } catch {

@@ -11,7 +11,6 @@ export default function ProfileError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Profile]", error);
     import("@sentry/nextjs").then((Sentry) => Sentry.captureException(error)).catch(() => {});
   }, [error]);
 

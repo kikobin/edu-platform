@@ -4,6 +4,7 @@ import { memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { useUserStore } from "@/store/userStore";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -15,6 +16,19 @@ const navItems = [
         <path d="M2 10L10 2L18 10V18H13V13H7V18H2V10Z"
           stroke={a ? "#685BC7" : "#9CA3AF"} strokeWidth="1.8" strokeLinejoin="round"
           fill={a ? "#685BC7" : "none"} fillOpacity={a ? 0.12 : 0}/>
+      </svg>
+    ),
+  },
+  {
+    href: "/my-homework",
+    label: "Домашки",
+    studentOnly: true,
+    icon: (a: boolean) => (
+      <svg width="22" height="22" viewBox="0 0 20 20" fill="none">
+        <path d="M5 3H13L17 7V17C17 17.55 16.55 18 16 18H5C4.45 18 4 17.55 4 17V4C4 3.45 4.45 3 5 3Z"
+          stroke={a ? "#685BC7" : "#9CA3AF"} strokeWidth="1.8" strokeLinejoin="round"
+          fill={a ? "#685BC7" : "none"} fillOpacity={a ? 0.12 : 0}/>
+        <path d="M13 3V7H17" stroke={a ? "#685BC7" : "#9CA3AF"} strokeWidth="1.8" strokeLinejoin="round"/>
       </svg>
     ),
   },
@@ -57,11 +71,13 @@ const navItems = [
 
 export const BottomNav = memo(function BottomNav() {
   const pathname = usePathname();
+  const role = useUserStore((s) => s.user?.role);
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100">
       <div className="flex">
-        {navItems.map(({ href, label, icon }) => {
+        {navItems.map(({ href, label, icon, studentOnly }) => {
+          if (studentOnly && role && role !== "student") return null;
           const active =
             pathname === href ||
             (pathname.startsWith("/lesson") && href === "/dashboard");

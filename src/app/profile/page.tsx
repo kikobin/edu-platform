@@ -6,7 +6,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useUserStore } from "@/store/userStore";
 import { useProgressStore } from "@/store/progressStore";
 import { getLevelByXP, getProgressToNextLevel, getNextLevel } from "@/lib/xp";
-import { lessons } from "@/data/lessons";
+import { ALL_LESSONS } from "@/content/study-lessons";
 import { shopItems } from "@/data/shop";
 import { AvatarDisplay } from "@/components/profile/AvatarDisplay";
 import { cn, clamp100 } from "@/lib/utils";
@@ -28,9 +28,9 @@ export default function ProfilePage() {
   const progress  = clamp100(getProgressToNextLevel(xp));
   const nextLevel = getNextLevel(xp);
 
-  const completedLessons   = lessons.filter((l) => isLessonCompleted(l.id)).length;
-  const submittedHomeworks = lessons.filter((l) => getLesson(l.id).homeworkStatus === "submitted").length;
-  const totalLessons       = lessons.length;
+  const completedLessons   = ALL_LESSONS.filter((l) => isLessonCompleted(l.slug)).length;
+  const submittedHomeworks = ALL_LESSONS.filter((l) => getLesson(l.slug).homeworkStatus === "submitted").length;
+  const totalLessons       = ALL_LESSONS.length;
 
   // If user isn't populated yet, render a visible loader inside AppLayout.
   // Returning an empty <div /> produced an apparently blank screen when AppLayout

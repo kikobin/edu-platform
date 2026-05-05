@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
+import { isValidUuid } from "@/lib/validation/schemas";
 
 interface Props {
   params: { id: string; studentId: string };
@@ -11,6 +12,10 @@ interface Props {
 export async function DELETE(_request: Request, { params }: Props) {
   const auth = await requireAuth("curator");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidUuid(params.id) || !isValidUuid(params.studentId)) {
+    return NextResponse.json({ error: "Invalid ids" }, { status: 400 });
+  }
 
   try {
     const group = await supabase.getGroupById(params.id);

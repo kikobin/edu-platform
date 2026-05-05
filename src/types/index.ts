@@ -9,6 +9,8 @@ export type AvatarId =
 
 export type UserRole = "student" | "curator" | "admin";
 
+export type Tier = "smart" | "vip";
+
 export interface User {
   id: string;
   name: string;
@@ -17,6 +19,8 @@ export interface User {
   titleId?: string;
   frameId?: string;
   role?: UserRole;
+  /** Subscription tier — drives tier-specific lesson visibility (e.g. ai-creator lessons 7–8). */
+  tier?: Tier;
 }
 
 // ─── XP & Levels ─────────────────────────────────────────────────────────────
@@ -159,7 +163,7 @@ export interface Question {
 
 // ─── Homework ────────────────────────────────────────────────────────────────
 
-export type SubmitType    = "text" | "link" | "confirm";
+export type SubmitType    = "text" | "link" | "confirm" | "file";
 /** not_started → in_progress → submitted → approved | revision */
 export type HomeworkStatus = "not_started" | "in_progress" | "submitted" | "approved" | "revision";
 

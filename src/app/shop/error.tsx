@@ -11,7 +11,7 @@ export default function ShopError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Shop]", error);
+    import("@sentry/nextjs").then((Sentry) => Sentry.captureException(error)).catch(() => {});
   }, [error]);
 
   return (

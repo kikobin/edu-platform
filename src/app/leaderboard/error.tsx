@@ -11,7 +11,7 @@ export default function LeaderboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Leaderboard]", error);
+    import("@sentry/nextjs").then((Sentry) => Sentry.captureException(error)).catch(() => {});
   }, [error]);
 
   return (

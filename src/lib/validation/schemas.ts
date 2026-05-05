@@ -18,6 +18,17 @@ export const LessonProgressSchema = z.object({
   practiceScore: z.number().int().min(0).max(100).optional(),
 });
 
+// ─── Dynamic study steps (interactive lessons) ────────────────────────────────
+
+/** lessonSlug like "lesson-1" / "ai-student-3"; stepKey like "step-1", "step-7", "submission" */
+const SAFE_SLUG_RE = /^[a-z0-9][a-z0-9-]{0,79}$/i;
+const SAFE_STEP_KEY_RE = /^[a-z0-9][a-z0-9-]{0,79}$/i;
+
+export const MarkDynamicStepSchema = z.object({
+  lessonSlug: z.string().regex(SAFE_SLUG_RE),
+  stepKey:    z.string().regex(SAFE_STEP_KEY_RE),
+});
+
 // ─── Submissions ──────────────────────────────────────────────────────────────
 
 export const CreateSubmissionSchema = z.object({
@@ -26,7 +37,34 @@ export const CreateSubmissionSchema = z.object({
   lessonTitle:   z.string().min(1).max(200),
   homeworkTitle: z.string().min(1).max(200),
   content:       z.string().max(2000).optional().default(""),
-  submitType:    z.enum(["confirm", "link", "text"]).default("confirm"),
+  submitType:    z.enum(["confirm", "link", "text", "file"]).default("confirm"),
+  fileUrl:       z.string().url().max(500).optional(),
+  fileMime:      z.string().max(100).optional(),
+  fileSize:      z.number().int().positive().max(50 * 1024 * 1024).optional(),
+});
+
+// ─── File upload (R2) ─────────────────────────────────────────────────────────
+
+export const ALLOWED_UPLOAD_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+  "application/pdf",
+] as const;
+
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+
+export const UploadUrlSchema = z.object({
+  filename:    z.string().min(1).max(200),
+  contentType: z.enum(ALLOWED_UPLOAD_MIME),
+  size:        z.number().int().positive().max(MAX_UPLOAD_BYTES),
+  lessonId:    z.string().min(1).max(100),
+  homeworkId:  z.string().min(1).max(100),
 });
 
 export const PatchSubmissionSchema = z.object({
@@ -44,7 +82,10 @@ export const CreateGroupSchema = z.object({
 });
 
 export const RenameGroupSchema = z.object({
-  name: z.string().min(1).max(80),
+  name: z.string().min(1).max(80).optional(),
+  tier: z.enum(["smart", "vip"]).optional(),
+}).refine((d) => d.name !== undefined || d.tier !== undefined, {
+  message: "name or tier is required",
 });
 
 export const AddStudentToGroupSchema = z.object({
@@ -67,10 +108,26 @@ export const AdminAdjustXPSchema = z.object({
   delta: z.number().int().positive().max(10_000),
 });
 
+// ─── Path param validators ────────────────────────────────────────────────────
+
+// app_user_id is an opaque short identifier ("student-1", "danial").
+// Whitelist lets routes reject control chars / SQL-ish payloads at the edge
+// even though PostgREST already URL-encodes filter values.
+export const APP_USER_ID_RE = /^[a-zA-Z0-9._-]{1,100}$/;
+export function isValidAppUserId(v: string): boolean {
+  return APP_USER_ID_RE.test(v);
+}
+
+// Postgres UUID — used for DB-generated ids (groups.id, submissions.id, profiles.id).
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+export function isValidUuid(v: string): boolean {
+  return UUID_RE.test(v);
+}
+
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
 export const LoginSchema = z.object({
-  username: z.string().trim().min(1).max(64),
+  username: z.string().trim().min(1).max(254),
   password: z.string().min(1).max(200),
 });
 

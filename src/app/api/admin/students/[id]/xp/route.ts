@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { awardXPByAppUserId } from "@/lib/awardXP";
 import { supabase } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rateLimit";
-import { parseBody, AdminAdjustXPSchema } from "@/lib/validation/schemas";
+import { parseBody, AdminAdjustXPSchema, isValidAppUserId } from "@/lib/validation/schemas";
 
 export async function PATCH(
   request: Request,
@@ -11,6 +11,10 @@ export async function PATCH(
 ) {
   const auth = await requireAuth("admin");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidAppUserId(params.id)) {
+    return NextResponse.json({ error: "Invalid student id" }, { status: 400 });
+  }
 
   if (!rateLimit(`admin:xp:${auth.authId}`, { limit: 30, windowMs: 60_000 })) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });

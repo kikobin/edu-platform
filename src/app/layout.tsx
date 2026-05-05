@@ -3,8 +3,8 @@ import "@/styles/globals.css";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export const metadata: Metadata = {
-  title: "EduPlatform — учись после урока",
-  description: "Платформа сопровождения онлайн-уроков для школьников",
+  title: "AI Trend — готовим к новому будущему",
+  description: "AI Trend — платформа сопровождения онлайн-уроков для школьников",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

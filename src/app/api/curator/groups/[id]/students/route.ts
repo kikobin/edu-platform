@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
-import { parseBody, AddStudentToGroupSchema } from "@/lib/validation/schemas";
+import { parseBody, AddStudentToGroupSchema, isValidUuid } from "@/lib/validation/schemas";
 import { rateLimit } from "@/lib/rateLimit";
 
 interface Props {
@@ -13,6 +13,10 @@ interface Props {
 export async function GET(_request: Request, { params }: Props) {
   const auth = await requireAuth("curator");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidUuid(params.id)) {
+    return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
+  }
 
   try {
     const group = await supabase.getGroupById(params.id);
@@ -35,6 +39,10 @@ export async function GET(_request: Request, { params }: Props) {
 export async function POST(request: Request, { params }: Props) {
   const auth = await requireAuth("curator");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidUuid(params.id)) {
+    return NextResponse.json({ error: "Invalid group id" }, { status: 400 });
+  }
 
   if (!rateLimit(`groups:add:${auth.authId}`, { limit: 30, windowMs: 60_000 })) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });

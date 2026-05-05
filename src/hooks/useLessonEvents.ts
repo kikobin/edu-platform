@@ -26,6 +26,16 @@ export function useLessonEvents() {
 
   useEffect(() => {
     const offStepCompleted = on("lesson:step:completed", (e) => {
+      // Study (interactive) lessons: server already awarded XP via
+      // /api/progress/dynamic-step. The local addXP keeps the popup + cache
+      // in sync, sourceId namespaced with "study:" so the ledger dedupes
+      // against the server-side row.
+      if (e.stepId.startsWith("step-") || e.stepId === "submission") {
+        const sourceId = `study:${e.lessonId}:${e.stepId}`;
+        addXP(e.xpReward, sourceId);
+        return;
+      }
+
       const sourceId = `step:${e.lessonId}:${e.stepId}`;
 
       if (e.stepId === "review") {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Submission, SubmissionStatus } from "@/types";
+import { SubmissionContent } from "@/components/admin/SubmissionContent";
 
 const STATUS_LABEL: Record<SubmissionStatus, string> = {
   pending:  "Ожидает",
@@ -23,9 +24,13 @@ function formatDate(iso: string) {
 function SubmissionCard({
   sub,
   onUpdate,
+  selected,
+  onToggleSelect,
 }: {
   sub: Submission;
   onUpdate: (id: string, status: SubmissionStatus, comment?: string) => void;
+  selected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const [comment, setComment] = useState(sub.curatorComment ?? "");
   const [loading, setLoading] = useState(false);
@@ -33,36 +38,47 @@ function SubmissionCard({
 
   const handle = async (status: SubmissionStatus) => {
     setLoading(true);
-    await fetch(`/api/admin/submissions/${sub.id}`, {
+    const res = await fetch(`/api/admin/submissions/${sub.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status,
-        curatorComment: comment || undefined,
-        userId: sub.userId,
-        lessonId: sub.lessonId,
-        lessonTitle: sub.lessonTitle,
-      }),
+      body: JSON.stringify({ status, curatorComment: comment || undefined }),
     });
-    onUpdate(sub.id, status, comment || undefined);
     setLoading(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Не удалось сохранить");
+      return;
+    }
+    onUpdate(sub.id, status, comment || undefined);
     setShowComment(false);
   };
 
   return (
     <div className={cn(
       "bg-white rounded-2xl border shadow-sm p-5 transition-all",
-      sub.status === "approved" ? "border-green-100 opacity-70" : "border-gray-100"
+      sub.status === "approved" ? "border-green-100 opacity-70" : "border-gray-100",
+      selected && "ring-2 ring-primary/40"
     )}>
       {/* Top row */}
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-sm font-bold text-gray-900">{sub.userName}</span>
-            <span className="text-gray-300">·</span>
-            <span className="text-sm text-gray-500 truncate max-w-[200px]">{sub.lessonTitle}</span>
+        <div className="flex items-start gap-3 min-w-0">
+          {sub.status === "pending" && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={() => onToggleSelect(sub.id)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/40 cursor-pointer shrink-0"
+              aria-label="Выбрать для массового действия"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-sm font-bold text-gray-900">{sub.userName}</span>
+              <span className="text-gray-300">·</span>
+              <span className="text-sm text-gray-500 truncate max-w-[200px]">{sub.lessonTitle}</span>
+            </div>
+            <p className="text-xs text-gray-400">{sub.homeworkTitle}</p>
           </div>
-          <p className="text-xs text-gray-400">{sub.homeworkTitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className={cn(
@@ -77,15 +93,8 @@ function SubmissionCard({
 
       {/* Content */}
       {sub.content && (
-        <div className="bg-gray-50 rounded-xl px-4 py-3 mb-3 text-sm text-gray-700 break-all">
-          {sub.submitType === "link" ? (
-            <a href={sub.content} target="_blank" rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary/80">
-              {sub.content}
-            </a>
-          ) : (
-            sub.content
-          )}
+        <div className="mb-3">
+          <SubmissionContent content={sub.content} />
         </div>
       )}
 
@@ -152,11 +161,56 @@ export default function AdminHomeworkPage() {
   const [filter, setFilter] = useState<"all" | SubmissionStatus>("all");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const [groupId, setGroupId] = useState<string>("");
+
+  useEffect(() => {
+    fetch("/api/curator/groups")
+      .then((r) => r.ok ? r.json() : { groups: [] })
+      .then((data: { groups: { id: string; name: string }[] }) => setGroups(data.groups ?? []))
+      .catch(() => setGroups([]));
+  }, []);
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkApprove = async () => {
+    if (selected.size === 0 || bulkBusy) return;
+    if (!confirm(`Одобрить ${selected.size} работ${selected.size === 1 ? "у" : ""}?`)) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    // Sequential — keeps us comfortably under the 60/min server rate limit and
+    // avoids racing two PATCHes on the same student's XP profile cache.
+    const okIds = new Set<string>();
+    for (const id of ids) {
+      const res = await fetch(`/api/admin/submissions/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" }),
+      });
+      if (res.ok) okIds.add(id);
+    }
+    setSubmissions((prev) => prev.map((s) => okIds.has(s.id) ? { ...s, status: "approved" as SubmissionStatus } : s));
+    setSelected(new Set());
+    setBulkBusy(false);
+    if (okIds.size < ids.length) {
+      alert(`Одобрено: ${okIds.size}. Не удалось: ${ids.length - okIds.size}`);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
-    const qs = filter !== "all" ? `?status=${filter}&page=${page}` : `?page=${page}`;
-    fetch(`/api/admin/submissions${qs}`)
+    const qs = new URLSearchParams({ page: String(page) });
+    if (filter !== "all") qs.set("status", filter);
+    if (groupId) qs.set("groupId", groupId);
+    fetch(`/api/admin/submissions?${qs.toString()}`)
       .then((r) => r.json())
       .then((data: { submissions: Submission[]; hasMore: boolean } | Submission[]) => {
         // Support both old (array) and new (object) response shape
@@ -170,12 +224,20 @@ export default function AdminHomeworkPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [filter, page]);
+  }, [filter, page, groupId]);
 
   const handleFilterChange = (f: "all" | SubmissionStatus) => {
     setFilter(f);
     setPage(1);
     setSubmissions([]);
+    setSelected(new Set());
+  };
+
+  const handleGroupChange = (id: string) => {
+    setGroupId(id);
+    setPage(1);
+    setSubmissions([]);
+    setSelected(new Set());
   };
 
   const handleUpdate = (id: string, status: SubmissionStatus, comment?: string) => {
@@ -211,7 +273,7 @@ export default function AdminHomeworkPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 mb-5 flex-wrap items-center">
         {FILTERS.map((f) => (
           <button
             key={f.key}
@@ -226,7 +288,41 @@ export default function AdminHomeworkPage() {
             {f.label}
           </button>
         ))}
+        {groups.length > 0 && (
+          <select
+            value={groupId}
+            onChange={(e) => handleGroupChange(e.target.value)}
+            className="ml-auto px-3 py-1.5 text-sm font-semibold rounded-xl bg-white border border-gray-200 text-gray-700 outline-none focus:border-primary/40"
+          >
+            <option value="">Все группы</option>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        )}
       </div>
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-10 mb-4 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-primary/10 border border-primary/20 shadow-sm">
+          <span className="text-sm font-bold text-primary">
+            Выбрано: {selected.size}
+          </span>
+          <button
+            onClick={bulkApprove}
+            disabled={bulkBusy}
+            className="ml-auto px-4 py-1.5 text-xs font-bold rounded-xl bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+          >
+            {bulkBusy ? "Принимаем..." : "✓ Принять все"}
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"
+          >
+            Снять выбор
+          </button>
+        </div>
+      )}
 
       {/* List */}
       {loading && submissions.length === 0 ? (
@@ -245,7 +341,13 @@ export default function AdminHomeworkPage() {
         <>
           <div className="space-y-3">
             {submissions.map((sub) => (
-              <SubmissionCard key={sub.id} sub={sub} onUpdate={handleUpdate} />
+              <SubmissionCard
+                key={sub.id}
+                sub={sub}
+                onUpdate={handleUpdate}
+                selected={selected.has(sub.id)}
+                onToggleSelect={toggleSelect}
+              />
             ))}
           </div>
           {hasMore && (

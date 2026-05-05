@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, ReactNode } from "react";
 import Link from "next/link";
 import { useNotificationsContext } from "@/context/NotificationsContext";
+import { CheckIcon, PencilIcon, InfoIcon } from "@/components/brand/Icon";
 import { cn } from "@/lib/utils";
 
 function timeAgo(iso: string) {
@@ -15,9 +16,9 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)} дн назад`;
 }
 
-const TYPE_ICON: Record<string, string> = {
-  homework_approved: "✅",
-  homework_revision: "💬",
+const TYPE_ICON: Record<string, ReactNode> = {
+  homework_approved: <CheckIcon size={16} className="text-success" />,
+  homework_revision: <PencilIcon size={16} className="text-error" />,
 };
 
 interface Props {
@@ -58,10 +59,10 @@ export function NotificationBell({ variant = "sidebar" }: Props) {
         onClick={handleOpen}
         aria-label="Уведомления"
         className={cn(
-          "relative flex items-center justify-center rounded-xl transition-all",
+          "relative flex items-center justify-center rounded-md transition-colors",
           variant === "sidebar"
-            ? "w-9 h-9 text-text-muted hover:bg-gray-100 hover:text-text"
-            : "w-11 h-11 text-gray-400"
+            ? "w-8 h-8 text-text-muted hover:bg-bg hover:text-text"
+            : "w-11 h-11 text-text-muted"
         )}
       >
         <svg width={iconSize} height={iconSize} viewBox="0 0 20 20" fill="none">
@@ -86,41 +87,43 @@ export function NotificationBell({ variant = "sidebar" }: Props) {
       {/* Dropdown panel */}
       {open && (
         <div className={cn(
-          "absolute z-50 bg-white rounded-2xl shadow-xl border border-gray-100 w-80 overflow-y-auto",
+          "absolute z-50 bg-white rounded-xl shadow-xl border border-border w-80 overflow-y-auto",
           variant === "sidebar"
             ? "left-full ml-2 top-0 max-h-96"
             : "bottom-full mb-2 right-0 max-h-[min(384px,calc(100dvh-80px))]"
         )}>
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-            <p className="text-sm font-black text-gray-900">Уведомления</p>
+          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+            <p className="text-[14px] font-semibold text-text">Уведомления</p>
             {notifications.length > 0 && (
-              <span className="text-xs text-gray-400">{notifications.length}</span>
+              <span className="text-[11px] text-text-muted">{notifications.length}</span>
             )}
           </div>
 
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-2xl mb-2">🔔</p>
-              <p className="text-sm text-gray-400">Нет уведомлений</p>
+              <div className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-bg text-text-muted mb-2">
+                <InfoIcon size={18} />
+              </div>
+              <p className="text-[13px] text-text-muted">Нет уведомлений</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-50">
+            <ul className="divide-y divide-border">
               {notifications.map((n) => {
                 const href =
                   n.lessonId && (n.type === "homework_revision" || n.type === "homework_approved")
-                    ? `/lesson/${n.lessonId}/homework`
+                    ? `/study/${n.lessonId}`
                     : null;
                 const inner = (
                   <>
-                    <span className="text-lg shrink-0 mt-0.5">
-                      {TYPE_ICON[n.type] ?? "🔔"}
+                    <span className="shrink-0 mt-0.5">
+                      {TYPE_ICON[n.type] ?? <InfoIcon size={16} className="text-text-muted" />}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-800 leading-snug">{n.message}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.createdAt)}</p>
+                      <p className="text-[13px] text-text leading-snug">{n.message}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5">{timeAgo(n.createdAt)}</p>
                       {href && (
-                        <p className="text-xs text-primary font-semibold mt-1">
-                          Перейти к домашнему заданию →
+                        <p className="text-[11px] text-primary font-semibold mt-1">
+                          Перейти к работе →
                         </p>
                       )}
                     </div>
@@ -136,7 +139,7 @@ export function NotificationBell({ variant = "sidebar" }: Props) {
                       <Link
                         href={href}
                         onClick={() => setOpen(false)}
-                        className="flex gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                        className="flex gap-3 px-4 py-3 hover:bg-bg transition-colors"
                       >
                         {inner}
                       </Link>

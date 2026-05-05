@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rateLimit";
@@ -12,23 +13,33 @@ export async function GET() {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const rows = await supabase.getNotificationsByUser(auth.appUserId);
-  const notifications = rows.map((r) => ({
-    id:        r.id,
-    type:      r.type,
-    message:   r.message,
-    lessonId:  r.lesson_id,
-    read:      r.read,
-    createdAt: r.created_at,
-  }));
+  try {
+    const rows = await supabase.getNotificationsByUser(auth.appUserId);
+    const notifications = rows.map((r) => ({
+      id:        r.id,
+      type:      r.type,
+      message:   r.message,
+      lessonId:  r.lesson_id,
+      read:      r.read,
+      createdAt: r.created_at,
+    }));
 
-  return NextResponse.json(notifications);
+    return NextResponse.json(notifications);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { route: "GET /api/notifications" } });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH() {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
-  await supabase.markNotificationsRead(auth.appUserId);
-  return NextResponse.json({ ok: true });
+  try {
+    await supabase.markNotificationsRead(auth.appUserId);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    Sentry.captureException(err, { tags: { route: "PATCH /api/notifications" } });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

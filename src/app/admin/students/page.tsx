@@ -55,21 +55,49 @@ function AvatarImg({ id }: { id: AvatarId }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [total, setTotal]       = useState(0);
+  const [page, setPage]         = useState(1);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState("");
+  const [debounced, setDebounced] = useState("");
+
+  // Debounce search → fetch
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Reset to page 1 whenever the search changes
+  useEffect(() => { setPage(1); }, [debounced]);
 
   useEffect(() => {
-    fetch("/api/admin/students")
+    setLoading(true);
+    const qs = new URLSearchParams({
+      page: String(page),
+      pageSize: String(PAGE_SIZE),
+    });
+    if (debounced) qs.set("search", debounced);
+    fetch(`/api/admin/students?${qs.toString()}`)
       .then((r) => r.json())
-      .then((data) => { setStudents(data); setLoading(false); })
+      .then((data) => {
+        if (Array.isArray(data)) {
+          // Backwards-compat: if the API still returns a bare array, treat as full list.
+          setStudents(data);
+          setTotal(data.length);
+        } else {
+          setStudents(data.students ?? []);
+          setTotal(data.total ?? 0);
+        }
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
-  }, []);
+  }, [page, debounced]);
 
-  const filtered = students.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <div className="p-8">
@@ -77,14 +105,23 @@ export default function AdminStudentsPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-black text-gray-900">Ученики</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{students.length} человек в группе</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} человек{total === 1 ? "" : total < 5 ? "а" : ""} в группе</p>
         </div>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Поиск по имени..."
-          className="w-52 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
-        />
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/admin/students/export"
+            className="px-3 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 hover:border-primary/40 hover:text-primary transition-all"
+            download
+          >
+            Экспорт CSV
+          </a>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по имени..."
+            className="w-52 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+          />
+        </div>
       </div>
 
       {/* Table */}
@@ -105,19 +142,20 @@ export default function AdminStudentsPage() {
                   Загружаем данные...
                 </td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : students.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-5 py-12 text-center text-gray-400 text-sm">
-                  {search ? "Никого не нашли" : "Нет данных"}
+                  {debounced ? "Никого не нашли" : "Нет данных"}
                 </td>
               </tr>
             ) : (
-              filtered.map((student, idx) => {
+              students.map((student, idx) => {
                 const level = getLevel(student.xp);
+                const ord = (page - 1) * PAGE_SIZE + idx + 1;
                 return (
                   <tr key={student.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors group">
                     <td className="px-5 py-4 text-sm font-bold text-gray-300 tabular-nums w-10">
-                      {idx + 1}
+                      {ord}
                     </td>
                     <td className="px-5 py-4">
                       <Link href={`/admin/students/${student.id}`} className="flex items-center gap-3">
@@ -143,10 +181,26 @@ export default function AdminStudentsPage() {
         </table>
       </div>
 
-      {!loading && students.length > 0 && (
-        <p className="text-xs text-gray-400 mt-3 text-right">
-          Прогресс синхронизируется с Supabase в реальном времени
-        </p>
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 disabled:opacity-40 hover:border-primary/40 transition-all"
+          >
+            ← Назад
+          </button>
+          <span className="text-xs text-gray-400">
+            Страница {page} из {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 disabled:opacity-40 hover:border-primary/40 transition-all"
+          >
+            Вперёд →
+          </button>
+        </div>
       )}
     </div>
   );

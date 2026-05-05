@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const body = await parseBody(request, CreateSubmissionSchema);
   if (body instanceof NextResponse) return body;
 
-  const { lessonId, homeworkId, lessonTitle, homeworkTitle, content, submitType } = body;
+  const { lessonId, homeworkId, lessonTitle, homeworkTitle, content, submitType, fileUrl, fileMime, fileSize } = body;
 
   try {
     await supabase.upsertSubmission({
@@ -55,6 +55,9 @@ export async function POST(request: Request) {
       submit_type:     submitType ?? "confirm",
       status:          "pending",
       curator_comment: undefined,
+      file_url:        fileUrl,
+      file_mime:       fileMime,
+      file_size:       fileSize,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

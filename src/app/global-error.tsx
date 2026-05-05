@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function GlobalError({
   error,
   reset,
@@ -7,7 +9,9 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  console.error("[GlobalError]", error);
+  useEffect(() => {
+    import("@sentry/nextjs").then((Sentry) => Sentry.captureException(error)).catch(() => {});
+  }, [error]);
 
   return (
     <html lang="ru">

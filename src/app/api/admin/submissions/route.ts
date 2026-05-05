@@ -10,6 +10,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get("status") ?? "all";
+  const groupFilter  = searchParams.get("groupId");
   const page         = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
 
   // Curators only see their own students; admins see everyone.
@@ -18,6 +19,19 @@ export async function GET(request: Request) {
   let studentIds: string[] | null = null;
   if (auth.role === "curator") {
     studentIds = await supabase.getCuratorStudents(auth.appUserId);
+    if (studentIds.length === 0) {
+      return NextResponse.json({ submissions: [], page, pageSize: PAGE_SIZE, hasMore: false });
+    }
+  }
+
+  if (groupFilter) {
+    const groupStudents = await supabase.getStudentsInGroup(groupFilter);
+    const groupIds = groupStudents.map((s) => s.app_user_id);
+    // Intersect with curator's assigned students. If curator filtered to a group
+    // that contains none of their students, return empty rather than leak.
+    studentIds = studentIds
+      ? studentIds.filter((id) => groupIds.includes(id))
+      : groupIds;
     if (studentIds.length === 0) {
       return NextResponse.json({ submissions: [], page, pageSize: PAGE_SIZE, hasMore: false });
     }

@@ -71,8 +71,13 @@ export function emit<K extends DomainEventName>(
     try {
       fn(payload as never);
     } catch (err) {
-      // Subscriber errors must not crash the publisher
-      console.error(`[events] subscriber error on "${event}":`, err);
+      // Subscriber errors must not crash the publisher. Surface in dev so we
+      // notice broken handlers; stay silent in prod to avoid noisy console
+      // breadcrumbs and accidental PII leakage.
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.error(`[events] subscriber error on "${event}":`, err);
+      }
     }
   });
 }

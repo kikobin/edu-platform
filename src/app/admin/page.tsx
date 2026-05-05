@@ -31,17 +31,21 @@ function formatDate(iso: string) {
 }
 
 async function fetchDashboardData(role: string, userId: string) {
-  // Fetch in parallel — leaderboard comes from profiles (authoritative XP)
-  const [leaderRows, submissionRows] = await Promise.all([
-    supabase.getLeaderboard(),  // reads from profiles table, students only
-    supabase.getSubmissions({ pageSize: 100 }),
-  ]);
-
+  // For curators we narrow to their assigned students so submission counts and
+  // top-XP both reflect only the curator's group, not the whole school.
   let studentIds: string[] | undefined;
   if (role === "curator") {
     const assigned = await supabase.getCuratorStudents(userId);
-    if (assigned.length > 0) studentIds = assigned;
+    if (assigned.length === 0) {
+      return { students: [], submissions: [] };
+    }
+    studentIds = assigned;
   }
+
+  const [leaderRows, submissionRows] = await Promise.all([
+    supabase.getLeaderboard(),
+    supabase.getSubmissions({ pageSize: 100, studentIds }),
+  ]);
 
   const students: Student[] = leaderRows
     .filter((r) => !studentIds || studentIds.includes(r.user_id))

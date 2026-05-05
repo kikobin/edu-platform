@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
-import { lessons } from "@/data/lessons";
+import { ALL_LESSONS } from "@/content/study-lessons";
+import { isValidAppUserId } from "@/lib/validation/schemas";
 
 export async function GET(
   _req: Request,
@@ -9,6 +10,10 @@ export async function GET(
 ) {
   const auth = await requireAuth("curator");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidAppUserId(params.id)) {
+    return NextResponse.json({ error: "Invalid student id" }, { status: 400 });
+  }
 
   // Curators may only view students explicitly assigned to them.
   // Admins bypass this check (they see everyone).
@@ -31,16 +36,16 @@ export async function GET(
 
   const xp = profile.xp ?? 0;
 
-  const lessonsSummary = lessons.map((lesson) => {
-    const lessonSubs = submissions.filter((s) => s.lesson_id === lesson.id);
+  const lessonsSummary = ALL_LESSONS.map((lesson) => {
+    const lessonSubs = submissions.filter((s) => s.lesson_id === lesson.slug);
     const latest = lessonSubs[0] ?? null;
-    const lp = lessonProgressRows.find((r) => r.lesson_id === lesson.id);
+    const lp = lessonProgressRows.find((r) => r.lesson_id === lesson.slug);
     const homeworkSubmitted = latest !== null;
 
     return {
-      lessonId:          lesson.id,
+      lessonId:          lesson.slug,
       lessonTitle:       lesson.title,
-      lessonOrder:       lesson.order,
+      lessonOrder:       lesson.id, // numeric id used as ordering key for the curator UI
       reviewDone:        lp?.review_done ?? homeworkSubmitted,
       practiceDone:      lp?.practice_done ?? homeworkSubmitted,
       practiceScore:     lp?.practice_score ?? 0,

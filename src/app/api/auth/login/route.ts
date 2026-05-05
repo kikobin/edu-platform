@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const password = body.password;
     const supabase = createSupabaseServer();
-    const email = `${uname}@edu-platform.internal`;
+    const email = uname.includes("@") ? uname : `${uname}@edu-platform.internal`;
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 

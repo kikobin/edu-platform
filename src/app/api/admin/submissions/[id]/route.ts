@@ -3,8 +3,9 @@ import * as Sentry from "@sentry/nextjs";
 import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
 import { awardXPByAppUserId, revokeXPByAppUserId, XP_SOURCES } from "@/lib/awardXP";
+import { rateLimit } from "@/lib/rateLimit";
 import { XP_REWARDS } from "@/types";
-import { parseBody, PatchSubmissionSchema } from "@/lib/validation/schemas";
+import { parseBody, PatchSubmissionSchema, isValidUuid } from "@/lib/validation/schemas";
 
 interface Props {
   params: { id: string };
@@ -13,6 +14,17 @@ interface Props {
 export async function PATCH(request: Request, { params }: Props) {
   const auth = await requireAuth("curator");
   if (auth instanceof NextResponse) return auth;
+
+  if (!isValidUuid(params.id)) {
+    return NextResponse.json({ error: "Invalid submission id" }, { status: 400 });
+  }
+
+  // Curators/admins can mass-review, but a single account spamming approve/revision
+  // toggles can both inflate notifications and create XP-rollback churn. Cap to
+  // ~2/sec sustained.
+  if (!rateLimit(`admin:submission:${auth.authId}`, { limit: 60, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
 
   const body = await parseBody(request, PatchSubmissionSchema);
   if (body instanceof NextResponse) return body;
@@ -35,7 +47,18 @@ export async function PATCH(request: Request, { params }: Props) {
       }
     }
 
-    await supabase.updateSubmission(params.id, status, curatorComment);
+    // Optimistic lock on version: if another curator already moved the submission
+    // forward, return 409 so the client refetches instead of awarding XP twice.
+    // Pre-versioned rows (version IS NULL) are updated unconditionally — once
+    // updated they get version=1 and the lock kicks in for subsequent writes.
+    const expectedVersion = submission.version ?? undefined;
+    const result = await supabase.updateSubmission(params.id, status, curatorComment, expectedVersion);
+    if (!result.ok && result.reason === "conflict") {
+      return NextResponse.json(
+        { error: "Эта домашка уже была обновлена другим куратором — обнови список." },
+        { status: 409 }
+      );
+    }
 
     // Use real user_id and lesson_id from the DB row — never from the client body.
     const realUserId      = submission.user_id;
@@ -74,8 +97,8 @@ export async function PATCH(request: Request, { params }: Props) {
     if (status === "approved" || status === "revision") {
       const message =
         status === "approved"
-          ? `Куратор принял твою работу по уроку «${realLessonTitle ?? realLessonId}» ✅`
-          : `Куратор отправил работу на доработку по уроку «${realLessonTitle ?? realLessonId}» 💬`;
+          ? `Куратор принял твою работу по уроку «${realLessonTitle ?? realLessonId}»`
+          : `Куратор отправил работу на доработку по уроку «${realLessonTitle ?? realLessonId}»`;
 
       await supabase.createNotification({
         user_id:   realUserId,

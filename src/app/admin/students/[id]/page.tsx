@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getLevelByXP, getProgressToNextLevel } from "@/lib/xp";
 import { useIsAdmin } from "@/hooks/useRole";
+import { ALL_LESSONS } from "@/content/study-lessons";
+import { MODULES } from "@/content/study-modules";
 import type { AvatarId, SubmissionStatus } from "@/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -83,6 +85,91 @@ function StatusBadge({ status }: { status: SubmissionStatus }) {
     )}>
       {STATUS_LABEL[status]}
     </span>
+  );
+}
+
+// ─── Unlock-up-to (bulk unlock for one student, used on migration) ────────────
+
+function UnlockUpToCard({ studentId, onDone }: { studentId: string; onDone: () => void }) {
+  const [target, setTarget] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ unlocked: number; conflicts: number; errors: number } | null>(null);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    if (!target) return;
+    const lesson = ALL_LESSONS.find((l) => l.slug === target);
+    if (!lesson) return;
+    if (!confirm(
+      `Открыть все уроки до «${lesson.title}» включительно? ` +
+      `Будут помечены пройденными, начислится XP. Уведомления не шлются.`,
+    )) return;
+    setBusy(true);
+    setResult(null);
+    setError("");
+    const res = await fetch(`/api/admin/students/${studentId}/unlock-up-to`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonSlug: target }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data?.error ?? "Не удалось открыть");
+      return;
+    }
+    const data = await res.json();
+    setResult(data);
+    onDone();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-amber-200 shadow-sm p-5">
+      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-amber-700 mb-1">
+        🔓 Открыть уроки до… (миграция)
+      </p>
+      <p className="text-xs text-gray-500 mb-3">
+        Откроет ученику все уроки до выбранного включительно (как пройденные, с XP, без уведомлений).
+        Идемпотентно.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <select
+          value={target}
+          onChange={(e) => { setTarget(e.target.value); setResult(null); setError(""); }}
+          className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+        >
+          <option value="">— выбери последний пройденный урок —</option>
+          {MODULES.filter((m) => m.status === "available").map((m) => {
+            const lessons = ALL_LESSONS.filter((l) => l.module === m.slug);
+            if (lessons.length === 0) return null;
+            return (
+              <optgroup key={m.slug} label={m.title}>
+                {lessons.map((l, idx) => (
+                  <option key={l.slug} value={l.slug}>
+                    Урок {idx + 1}: {l.title}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
+        </select>
+        <button
+          onClick={submit}
+          disabled={busy || !target}
+          className="px-4 py-2 text-sm font-bold rounded-xl bg-amber-500 text-white disabled:opacity-50 whitespace-nowrap"
+        >
+          {busy ? "Открываем…" : "Открыть"}
+        </button>
+      </div>
+      {result && (
+        <p className="mt-2 text-xs text-green-700 font-semibold">
+          ✓ Открыто {result.unlocked} уроков
+          {result.conflicts > 0 && ` (${result.conflicts} уже были)`}
+          {result.errors > 0 && `, ошибок: ${result.errors}`}
+        </p>
+      )}
+      {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+    </div>
   );
 }
 
@@ -255,8 +342,17 @@ export default function StudentDetailPage() {
 
       {/* ── Admin XP editor ── */}
       {isAdmin && (
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
           <XPEditor studentId={student.id} currentXP={xp} onUpdate={setXP} />
+          <UnlockUpToCard
+            studentId={student.id}
+            onDone={() => {
+              fetch(`/api/admin/students/${student.id}`)
+                .then((r) => r.json())
+                .then((d: StudentDetail) => { setData(d); setXP(d.xp); })
+                .catch(() => {});
+            }}
+          />
         </div>
       )}
 
@@ -271,7 +367,20 @@ export default function StudentDetailPage() {
               Уроки ещё не начаты
             </div>
           ) : (
-            lessonsSummary.map((ls) => <LessonRow key={ls.lessonId} lesson={ls} />)
+            lessonsSummary.map((ls) => (
+              <LessonRow
+                key={ls.lessonId}
+                lesson={ls}
+                studentId={student.id}
+                onUnlocked={() => {
+                  // Refetch the page-level data so progress reflects the unlock.
+                  fetch(`/api/admin/students/${student.id}`)
+                    .then((r) => r.json())
+                    .then((d: StudentDetail) => { setData(d); setXP(d.xp); })
+                    .catch(() => {});
+                }}
+              />
+            ))
           )}
         </div>
       </section>
@@ -351,9 +460,34 @@ function StepDot({ done, label }: { done: boolean; label: string }) {
   );
 }
 
-function LessonRow({ lesson }: { lesson: LessonSummary }) {
-  const { lessonTitle, lessonOrder, reviewDone, practiceDone, practiceScore,
+function LessonRow({
+  lesson, studentId, onUnlocked,
+}: {
+  lesson: LessonSummary;
+  studentId: string;
+  onUnlocked: () => void;
+}) {
+  const { lessonId, lessonTitle, lessonOrder, reviewDone, practiceDone, practiceScore,
           submissionStatus, submittedAt, curatorComment } = lesson;
+  const [unlocking, setUnlocking] = useState(false);
+  const isApproved = submissionStatus === "approved";
+
+  const unlock = async () => {
+    if (!confirm(`Разблокировать урок «${lessonTitle}» без сдачи домашки?`)) return;
+    setUnlocking(true);
+    const res = await fetch(`/api/admin/students/${studentId}/unlock`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lessonId }),
+    });
+    setUnlocking(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error ?? "Не удалось разблокировать");
+      return;
+    }
+    onUnlocked();
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4">
@@ -377,10 +511,20 @@ function LessonRow({ lesson }: { lesson: LessonSummary }) {
       </div>
 
       {/* Step indicators */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         <StepDot done={reviewDone} label="Повторение" />
         <StepDot done={practiceDone} label={`Закрепление${practiceDone ? ` (${practiceScore}%)` : ""}`} />
         <StepDot done={submissionStatus !== null} label="Домашка" />
+        {!isApproved && (
+          <button
+            onClick={unlock}
+            disabled={unlocking}
+            className="ml-auto text-[11px] font-bold text-primary hover:underline disabled:opacity-50"
+            title="Засчитать урок без сдачи домашки и открыть следующий"
+          >
+            {unlocking ? "Разблокируем..." : "🔓 Разблокировать"}
+          </button>
+        )}
       </div>
 
       {curatorComment && (

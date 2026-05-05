@@ -33,3 +33,17 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Secrets and one-off scripts (never push)
+scripts/credentials.csv
+*.credentials.csv
+scripts/inspect-schema.mjs
+scripts/reset-and-seed-users.mjs
+scripts/gen-*.py
+
+# Source materials (lesson PDFs etc — not for prod build)
+1module urok pdf/
+*.pdf
+
+# Stray local images
+/image.png

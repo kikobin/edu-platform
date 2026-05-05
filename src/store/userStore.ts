@@ -106,7 +106,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     // Clear Sentry user context on logout — dynamic import avoids bundle impact
     import("@sentry/nextjs").then((S) => S.setUser(null)).catch(() => {});
     fetch("/api/auth/logout", { method: "POST" })
-      .catch(console.error)
+      .catch(() => { /* logout is best-effort; we still redirect */ })
       .finally(() => {
         window.location.href = "/login";
       });

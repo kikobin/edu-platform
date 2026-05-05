@@ -10,6 +10,7 @@ const XPPopup     = dynamic(() => import("@/components/xp/XPPopup").then((m) => 
 const StatusToast = dynamic(() => import("@/components/ui/StatusToast").then((m) => m.StatusToast), { ssr: false });
 import { useUserStore } from "@/store/userStore";
 import { useProgressStore } from "@/store/progressStore";
+import { setStudyProgressUserId } from "@/store/studyProgressStore";
 import { useLessonEvents } from "@/hooks/useLessonEvents";
 import { useSession } from "@/hooks/useSession";
 import { NotificationsProvider } from "@/context/NotificationsContext";
@@ -59,6 +60,7 @@ export function AppLayout({ children, hideNav = false, wide = false, fluid = fal
     progressInitialized.current = true;
 
     initProgress(userId);
+    setStudyProgressUserId(userId);
     setIsReady(true);
 
     // Background server reconciliation — runs after the page is interactive.
@@ -152,7 +154,7 @@ export function AppLayout({ children, hideNav = false, wide = false, fluid = fal
         <div className="min-h-screen bg-bg">
           {/* Сайдбар показываем на десктопе — он сам hidden md:flex */}
           <Sidebar />
-          <div className="md:ml-64 min-h-screen">
+          <div className="md:ml-60 min-h-screen">
             {children}
           </div>
           {/* BottomNav скрываем — на уроке мешает */}
@@ -167,7 +169,7 @@ export function AppLayout({ children, hideNav = false, wide = false, fluid = fal
     <NotificationsProvider>
       <div className="min-h-screen bg-bg">
         <Sidebar />
-        <div className="md:ml-64 min-h-screen">
+        <div className="md:ml-60 min-h-screen">
           <main className={cn(
             "w-full pb-24 md:pb-10",
             !fluid && "mx-auto md:px-8",
