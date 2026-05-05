@@ -8,8 +8,9 @@ import { createSupabaseAdmin } from "@/lib/supabaseServer";
  * Returns the current authenticated user's profile.
  * Also computes and persists streak server-side based on last_visit_date.
  * Used by useSession to verify the session is still valid on app load.
+ * Accepts ?tzOffset=<minutes> (same sign as Date.getTimezoneOffset()) for local-date streak.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
@@ -22,7 +23,19 @@ export async function GET() {
       .single();
 
     // ── Streak computation ─────────────────────────────────────────────────────
-    const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    // Honour the client's local timezone so a user at 23:50 UTC+5 doesn't lose
+    // their streak just because the server clock rolled over to the next UTC day.
+    const rawOffset = new URL(request.url).searchParams.get("tzOffset");
+    const tzOffsetMin = (() => {
+      const n = rawOffset ? parseInt(rawOffset, 10) : NaN;
+      return Number.isFinite(n) && Math.abs(n) <= 14 * 60 ? n : 0;
+    })();
+    const localDate = (d: Date) => {
+      const shifted = new Date(d.getTime() - tzOffsetMin * 60_000);
+      return shifted.toISOString().slice(0, 10);
+    };
+
+    const today = localDate(new Date());
     const lastVisit = profile?.last_visit_date as string | null ?? null;
     const prevStreak = profile?.streak ?? 1;
 
@@ -35,9 +48,9 @@ export async function GET() {
       shouldUpdate = true;
     } else if (lastVisit < today) {
       // Not yet visited today — compute streak delta
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const wasYesterday = lastVisit === yesterday.toISOString().slice(0, 10);
+      const yDate = new Date();
+      yDate.setDate(yDate.getDate() - 1);
+      const wasYesterday = lastVisit === localDate(yDate);
       newStreak = wasYesterday ? prevStreak + 1 : 1;
       shouldUpdate = true;
     }

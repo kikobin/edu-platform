@@ -1,10 +1,27 @@
 import { supabase } from "@/lib/supabase";
 import { awardXPByAppUserId, XP_SOURCES } from "@/lib/awardXP";
-import { ALL_LESSONS } from "@/content/study-lessons";
+import { ALL_LESSONS, getPreviousLessonInModule } from "@/content/study-lessons";
 import { XP_REWARDS } from "@/types";
 import type { StudyLesson } from "@/types/study";
 
 const UNLOCK_COMMENT = "Разблокировано куратором без сдачи домашки";
+
+/**
+ * Returns true if `appUserId` is allowed to access steps in `lessonSlug`.
+ * Admins and curators always pass. Students must have an approved submission
+ * for the immediately preceding lesson in the same module.
+ */
+export async function isLessonUnlockedForUser(
+  appUserId: string,
+  lessonSlug: string,
+  role: string,
+): Promise<boolean> {
+  if (role === "admin" || role === "curator") return true;
+  const prev = getPreviousLessonInModule(lessonSlug);
+  if (!prev) return true; // first lesson in module — always open
+  const sub = await supabase.getSubmissionByUserAndLesson(appUserId, prev.slug);
+  return sub?.status === "approved";
+}
 
 export type UnlockReason = "approved" | "created" | "conflict" | "error";
 export interface UnlockOutcome {

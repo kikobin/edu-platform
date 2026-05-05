@@ -100,16 +100,12 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ user, xp, streak, purchasedIds: purchased });
   },
 
-  logout: () => {
-    storage.remove("user");
+  logout: async () => {
+    storage.clearAll();
     set({ user: null, xp: 0, streak: 0, purchasedIds: [] });
-    // Clear Sentry user context on logout — dynamic import avoids bundle impact
     import("@sentry/nextjs").then((S) => S.setUser(null)).catch(() => {});
-    fetch("/api/auth/logout", { method: "POST" })
-      .catch(() => { /* logout is best-effort; we still redirect */ })
-      .finally(() => {
-        window.location.href = "/login";
-      });
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch { /* best-effort */ }
+    window.location.href = "/login";
   },
 
   updateAvatar: (avatarId) => {
@@ -279,7 +275,7 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   reconcileXP: (serverXP) => {
     const { user, xp } = get();
-    if (serverXP <= xp) return;
+    if (serverXP === xp) return;
     storage.set(`xp_${user?.id}`, serverXP);
     set({ xp: serverXP });
   },

@@ -63,11 +63,19 @@ export async function POST(request: Request) {
     }
 
     // Insert purchase (UNIQUE guard prevents double-buy)
-    await supabase.from("purchases").insert({
+    const { error: insertErr } = await supabase.from("purchases").insert({
       user_id:     profile.id,
       app_user_id: auth.appUserId,
       item_id:     body.itemId,
     });
+    if (insertErr) {
+      if (insertErr.code === "23505") {
+        // Race: another request already inserted — return current state as if idempotent
+        const { data: allRows } = await supabase.from("purchases").select("item_id").eq("user_id", profile.id);
+        return NextResponse.json({ ok: true, newXP: profile.xp, purchasedIds: (allRows ?? []).map((r) => r.item_id) });
+      }
+      throw new Error(insertErr.message);
+    }
 
     // Deduct XP via negative event — keeps xp_events as single source of truth
     const newXP = await awardXP(

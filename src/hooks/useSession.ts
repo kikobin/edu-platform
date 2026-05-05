@@ -28,7 +28,8 @@ export function useSession() {
     if (checked.current) return;
     checked.current = true;
 
-    fetch("/api/me")
+    const tzOffset = new Date().getTimezoneOffset();
+    fetch(`/api/me?tzOffset=${tzOffset}`)
       .then(async (res) => {
         if (res.status === 401) {
           // Session expired or cookie gone — clear local state and redirect

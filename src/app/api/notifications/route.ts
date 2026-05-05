@@ -31,12 +31,14 @@ export async function GET() {
   }
 }
 
-export async function PATCH() {
+export async function PATCH(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
 
   try {
-    await supabase.markNotificationsRead(auth.appUserId);
+    const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+    const before = typeof body.before === "string" ? body.before : undefined;
+    await supabase.markNotificationsRead(auth.appUserId, before);
     return NextResponse.json({ ok: true });
   } catch (err) {
     Sentry.captureException(err, { tags: { route: "PATCH /api/notifications" } });

@@ -25,6 +25,7 @@ interface AppNotification {
   message: string;
   lessonId?: string;
   read: boolean;
+  createdAt: string;
 }
 
 function streakLabel(n: number) {
@@ -50,8 +51,13 @@ export default function DashboardPage() {
   }, []);
 
   const dismissNotifications = () => {
+    const before = notifications[0]?.createdAt ?? new Date().toISOString();
     setNotifications([]);
-    fetch("/api/notifications", { method: "PATCH" }).catch(() => {});
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ before }),
+    }).catch(() => {});
   };
 
   const level = useMemo(() => getLevelByXP(xp), [xp]);

@@ -6,6 +6,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { parseBody, MarkDynamicStepSchema } from "@/lib/validation/schemas";
 import { awardXP } from "@/lib/awardXP";
 import { STUDY_STEP_XP } from "@/types/study";
+import { isLessonUnlockedForUser } from "@/lib/unlock";
 
 /**
  * POST /api/progress/dynamic-step
@@ -38,6 +39,9 @@ export async function POST(request: Request) {
   if (body instanceof NextResponse) return body;
 
   const { lessonSlug, stepKey } = body;
+
+  const unlocked = await isLessonUnlockedForUser(auth.appUserId, lessonSlug, auth.role);
+  if (!unlocked) return NextResponse.json({ error: "Lesson is locked" }, { status: 403 });
 
   try {
     const admin = createSupabaseAdmin();

@@ -112,4 +112,21 @@ export const storage = {
   isEphemeral(): boolean {
     return useMemory;
   },
+
+  /** Remove all edu_ keys (except the version marker). Called on logout. */
+  clearAll(): void {
+    if (typeof window === "undefined") return;
+    if (useMemory) {
+      memoryFallback.clear();
+      return;
+    }
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith(PREFIX) && key !== VERSION_KEY) keysToRemove.push(key);
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k));
+    } catch { /* ignore */ }
+  },
 };

@@ -48,13 +48,21 @@ export function useNotifications(): NotificationsState {
   }, []);
 
   const markAllRead = useCallback(async () => {
+    // Capture watermark before optimistic update so we only mark notifications
+    // that were visible when the user opened the panel (not ones that arrive later).
+    const before = notifications.find((n) => !n.read)?.createdAt
+      ?? new Date().toISOString();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
-      await fetch("/api/notifications", { method: "PATCH" });
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ before }),
+      });
     } catch {
       // silent
     }
-  }, []);
+  }, [notifications]);
 
   useEffect(() => {
     fetchNotifications();

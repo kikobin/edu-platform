@@ -242,7 +242,7 @@ export const supabase = {
     if (!supabaseEnabled) return [];
     try {
       const res = await supabaseFetch(
-        `/submissions?user_id=eq.${userId}&select=*&order=submitted_at.desc`
+        `/submissions?user_id=eq.${encodeURIComponent(userId)}&select=*&order=submitted_at.desc`
       );
       if (!res.ok) return [];
       return res.json();
@@ -269,7 +269,7 @@ export const supabase = {
     if (!supabaseEnabled) return null;
     try {
       const res = await supabaseFetch(
-        `/submissions?user_id=eq.${userId}&lesson_id=eq.${lessonId}&select=*&order=submitted_at.desc&limit=1`
+        `/submissions?user_id=eq.${encodeURIComponent(userId)}&lesson_id=eq.${encodeURIComponent(lessonId)}&select=*&order=submitted_at.desc&limit=1`
       );
       if (!res.ok) return null;
       const rows: SubmissionRow[] = await res.json();
@@ -330,7 +330,7 @@ export const supabase = {
     if (!supabaseEnabled) return [];
     try {
       const res = await supabaseFetch(
-        `/notifications?user_id=eq.${userId}&order=created_at.desc&limit=20`
+        `/notifications?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=20`
       );
       if (!res.ok) return [];
       return res.json();
@@ -339,9 +339,11 @@ export const supabase = {
     }
   },
 
-  async markNotificationsRead(userId: string): Promise<void> {
+  async markNotificationsRead(userId: string, before?: string): Promise<void> {
     if (!supabaseEnabled) return;
-    const res = await supabaseFetch(`/notifications?user_id=eq.${userId}&read=eq.false`, {
+    let qs = `/notifications?user_id=eq.${encodeURIComponent(userId)}&read=eq.false`;
+    if (before) qs += `&created_at=lte.${encodeURIComponent(before)}`;
+    const res = await supabaseFetch(qs, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({ read: true }),

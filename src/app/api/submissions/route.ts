@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth/requireAuth";
 import { supabase } from "@/lib/supabase";
 import { parseBody, CreateSubmissionSchema } from "@/lib/validation/schemas";
 import { rateLimit } from "@/lib/rateLimit";
+import { isLessonUnlockedForUser } from "@/lib/unlock";
 
 export async function GET(request: Request) {
   const auth = await requireAuth();
@@ -42,6 +43,9 @@ export async function POST(request: Request) {
   if (body instanceof NextResponse) return body;
 
   const { lessonId, homeworkId, lessonTitle, homeworkTitle, content, submitType, fileUrl, fileMime, fileSize } = body;
+
+  const unlocked = await isLessonUnlockedForUser(auth.appUserId, lessonId, auth.role);
+  if (!unlocked) return NextResponse.json({ error: "Lesson is locked" }, { status: 403 });
 
   try {
     await supabase.upsertSubmission({

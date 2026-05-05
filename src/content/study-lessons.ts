@@ -645,3 +645,12 @@ export function findFirstIncompleteLessonStep(slug: string, progress?: ProgressS
   if (firstIncomplete) return firstIncomplete.n;
   return steps.at(-1)?.n ?? 1;
 }
+
+/** Returns the lesson that immediately precedes `slug` within the same module (by id order). */
+export function getPreviousLessonInModule(slug: string): StudyLesson | undefined {
+  const lesson = getLessonBySlug(slug);
+  if (!lesson) return undefined;
+  const sameModule = getLessonsByModule(lesson.module, lesson.tier).sort((a, b) => a.id - b.id);
+  const idx = sameModule.findIndex((l) => l.id === lesson.id);
+  return idx > 0 ? sameModule[idx - 1] : undefined;
+}

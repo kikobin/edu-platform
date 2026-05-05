@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
-import { createSupabaseServer } from "@/lib/supabaseServer";
+import { createSupabaseServer, createSupabaseAdmin } from "@/lib/supabaseServer";
 
 export type AuthResult = {
   authId: string;    // Supabase Auth UUID
@@ -31,11 +31,22 @@ export async function requireAuth(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const meta = user.user_metadata ?? {};
-  const role      = (meta.role      as string) ?? "student";
-  const appUserId = (meta.appUserId as string) ?? user.id;
-  const name      = (meta.name      as string) ?? "";
-  const avatarId  = (meta.avatarId  as string) ?? "avatar_1";
+  // app_user_id lives in profiles, not user_metadata (metadata is never populated by seed)
+  const admin = createSupabaseAdmin();
+  const { data: profile, error: pErr } = await admin
+    .from("profiles")
+    .select("app_user_id, role, name, avatar_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (pErr || !profile?.app_user_id) {
+    return NextResponse.json({ error: "Profile missing" }, { status: 401 });
+  }
+
+  const appUserId = profile.app_user_id as string;
+  const role      = (profile.role      as string) ?? "student";
+  const name      = (profile.name      as string) ?? "";
+  const avatarId  = (profile.avatar_id as string) ?? "avatar_1";
 
   if (requiredRole && role !== requiredRole && role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
