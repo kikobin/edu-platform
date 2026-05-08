@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout"];
+const PUBLIC_PATHS = ["/login", "/api-docs", "/api/auth/login", "/api/auth/logout"];
 const ADMIN_PATHS  = ["/admin"];
 const STUDENT_PATHS = ["/dashboard", "/lesson", "/shop", "/profile", "/leaderboard"];
 

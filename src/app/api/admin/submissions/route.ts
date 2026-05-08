@@ -59,6 +59,9 @@ export async function GET(request: Request) {
     submittedAt:    r.submitted_at,
     reviewedAt:     r.reviewed_at,
     version:        r.version ?? 1,
+    fileUrl:        r.file_url    ?? undefined,
+    fileMime:       r.file_mime   ?? undefined,
+    fileSize:       r.file_size   ?? undefined,
   }));
 
   return NextResponse.json({ submissions, page, pageSize: PAGE_SIZE, hasMore: rows.length === PAGE_SIZE });

@@ -238,4 +238,7 @@ export interface Submission {
   curatorComment?: string;
   submittedAt: string;
   reviewedAt?: string;
+  fileUrl?: string;
+  fileMime?: string;
+  fileSize?: number;
 }

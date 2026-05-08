@@ -220,11 +220,33 @@ function TextBlock({ text }: { text: string }) {
 
 export function SubmissionContent({
   content,
+  fileUrl,
+  fileMime,
   className,
 }: {
   content: string;
+  fileUrl?: string;
+  fileMime?: string;
   className?: string;
 }) {
+  // If we have an explicit fileUrl (uploaded to R2), use it directly
+  if (fileUrl) {
+    const mime = fileMime ?? "";
+    const isImage = mime.startsWith("image/");
+    const isVideo = mime.startsWith("video/");
+    const isPdf   = mime === "application/pdf";
+    return (
+      <div className={cn("max-w-full", className)}>
+        {isImage && <ImageBlock url={fileUrl} />}
+        {isVideo && <VideoBlock url={fileUrl} />}
+        {isPdf   && <PdfBlock   url={fileUrl} />}
+        {!isImage && !isVideo && !isPdf && <FileLink url={fileUrl} />}
+        {/* Show content text (e.g. selected level) below the file */}
+        {content && <TextBlock text={content} />}
+      </div>
+    );
+  }
+
   if (!content) return null;
   const { kind, url } = detectKind(content);
 

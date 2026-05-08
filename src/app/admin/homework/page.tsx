@@ -92,9 +92,13 @@ function SubmissionCard({
       </div>
 
       {/* Content */}
-      {sub.content && (
+      {(sub.content || sub.fileUrl) && (
         <div className="mb-3">
-          <SubmissionContent content={sub.content} />
+          <SubmissionContent
+            content={sub.content}
+            fileUrl={sub.fileUrl}
+            fileMime={sub.fileMime}
+          />
         </div>
       )}
 
