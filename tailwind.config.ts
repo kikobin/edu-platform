@@ -33,6 +33,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "Geist Mono", "IBM Plex Mono", "monospace"],
       },
       fontSize: {
         "2xs": ["10px", { lineHeight: "14px" }],
@@ -58,11 +59,17 @@ const config: Config = {
         "inner-sm":  "inset 0 1px 3px rgba(0,0,0,0.06)",
       },
       animation: {
-        "xp-pop":   "xpPop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)",
-        "fade-in":  "fadeIn 0.2s ease-out",
-        "slide-up": "slideUp 0.28s cubic-bezier(0.16,1,0.3,1)",
-        "bounce-in":"bounceIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)",
-        "pulse-soft":"pulseSoft 2s ease-in-out infinite",
+        "xp-pop":     "xpPop 0.45s cubic-bezier(0.175,0.885,0.32,1.275)",
+        "fade-in":    "fadeIn 0.2s ease-out",
+        "slide-up":   "slideUp 0.28s cubic-bezier(0.16,1,0.3,1)",
+        "bounce-in":  "bounceIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275)",
+        "pulse-soft": "pulseSoft 2s ease-in-out infinite",
+        "mirror-float":    "mirrorFloat 4s ease-in-out infinite",
+        "mirror-blink":    "mirrorBlink 1s step-end infinite",
+        "mirror-pulse-dot":"mirrorPulseDot 2s ease-in-out infinite",
+        "mirror-grid":     "mirrorGridPan 20s linear infinite",
+        "mirror-shimmer":  "mirrorShimmer 1.5s infinite",
+        "mirror-stagger":  "mirrorStaggerIn 0.5s ease-out both",
       },
       keyframes: {
         xpPop:   { "0%": { transform: "scale(0.5)", opacity: "0" }, "100%": { transform: "scale(1)", opacity: "1" } },
@@ -70,6 +77,28 @@ const config: Config = {
         slideUp: { "0%": { transform: "translateY(20px)", opacity: "0" }, "100%": { transform: "translateY(0)", opacity: "1" } },
         bounceIn:{ "0%": { transform: "scale(0.3)", opacity: "0" }, "60%": { transform: "scale(1.1)" }, "100%": { transform: "scale(1)", opacity: "1" } },
         pulseSoft:{ "0%,100%": { opacity: "1" }, "50%": { opacity: "0.6" } },
+        mirrorFloat: {
+          "0%,100%": { transform: "translateY(0px) rotate(0deg)" },
+          "33%": { transform: "translateY(-6px) rotate(0.5deg)" },
+          "66%": { transform: "translateY(-3px) rotate(-0.3deg)" },
+        },
+        mirrorBlink: { "0%,49%": { opacity: "1" }, "50%,100%": { opacity: "0" } },
+        mirrorPulseDot: {
+          "0%,100%": { transform: "scale(1)", boxShadow: "0 0 0 0 rgba(198,244,50,0.7)" },
+          "50%": { transform: "scale(1.3)", boxShadow: "0 0 0 6px rgba(198,244,50,0)" },
+        },
+        mirrorGridPan: {
+          "0%": { backgroundPosition: "0 0" },
+          "100%": { backgroundPosition: "40px 40px" },
+        },
+        mirrorShimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        mirrorStaggerIn: {
+          "from": { opacity: "0", transform: "translateY(16px)" },
+          "to": { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },

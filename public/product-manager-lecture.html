@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Продакт-менеджер — AI Trend School</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#6B5CE7;--lime:#8DC63F;--white:#fff;--black:#0D0D0D;
+  --dark:#1A1040;--mid:#2D2060;--purpleL:#8B7FF0;--off:#F0EDF8;
+  --red:#EE4444;--orange:#FF9F43;--teal:#00C9A7;--blue:#2D8CFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;background:#111;color:#fff;font-family:Onest,sans-serif;
+  display:flex;flex-direction:column;align-items:center;overflow-x:hidden;
+}
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:10;height:56px;
+  display:flex;align-items:center;justify-content:space-between;padding:12px 28px;
+  background:rgba(10,6,32,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(139,127,240,.2);
+}
+.brand{font-family:Unbounded,sans-serif;font-size:11px;letter-spacing:3px;color:var(--lime);font-weight:700}
+.controls{display:flex;align-items:center;gap:10px}
+button{
+  background:rgba(107,92,231,.25);border:1px solid rgba(107,92,231,.5);
+  color:#fff;padding:7px 16px;border-radius:6px;cursor:pointer;font:600 13px Onest,sans-serif;
+}
+button:hover{background:var(--purple)}
+.counter{font-family:Unbounded,sans-serif;font-size:11px;color:var(--purpleL);min-width:48px;text-align:center}
+.wrap{margin-top:56px;width:100%;max-width:1100px;padding:24px 16px 60px}
+.slide{
+  display:none;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
+  box-shadow:0 24px 80px rgba(0,0,0,.7);position:relative;padding:4.5%;
+}
+.slide.active{display:flex;flex-direction:column}
+.dark{background:var(--dark)}.light{background:var(--off);color:var(--dark)}
+.corner:before{content:"";position:absolute;top:0;right:0;width:60px;height:7px;background:var(--lime)}
+.corner:after{content:"";position:absolute;top:0;right:0;width:7px;height:60px;background:var(--lime)}
+.num{position:absolute;right:14px;bottom:10px;font:700 9px Unbounded,sans-serif;color:var(--purpleL)}
+.light .num{color:var(--purple)}
+.leftbar{position:absolute;left:0;top:0;bottom:0;width:18px;background:var(--lime)}
+.chip{
+  display:inline-flex;width:max-content;align-items:center;height:26px;padding:0 14px;
+  background:var(--lime);color:var(--dark);font:700 8px Unbounded,sans-serif;letter-spacing:1px;margin-bottom:18px;
+}
+h1{font:900 clamp(24px,4.5vw,54px)/1.05 Unbounded,sans-serif}
+h2{font:900 clamp(18px,3vw,36px)/1.15 Unbounded,sans-serif}
+h3{font:700 clamp(12px,1.5vw,18px)/1.2 Unbounded,sans-serif}
+p{font-size:clamp(10px,1.25vw,15px);line-height:1.45}
+.lime{color:var(--lime)}.purple{color:var(--purpleL)}.muted{color:#AAAACC}.darkText{color:var(--dark)}
+.divider{height:4px;border-radius:2px;background:var(--lime);width:56%;margin:14px 0}
+.row{display:flex;gap:3%;flex:1}.col{display:flex;flex-direction:column;gap:14px}
+.card{
+  background:var(--mid);border:1.5px solid var(--purple);padding:22px;display:flex;flex-direction:column;gap:10px;flex:1;
+}
+.whiteCard{background:#fff;color:var(--dark);border:1.5px solid var(--purple);padding:20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1;margin-top:18px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;flex:1;margin-top:18px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:1;margin-top:18px}
+.stat{font:900 clamp(22px,4vw,52px)/1 Unbounded,sans-serif;color:var(--lime)}
+.bar{position:absolute;left:0;right:0;bottom:0;background:var(--purple);padding:12px 4%;font:700 clamp(9px,1.3vw,15px) Unbounded,sans-serif}
+.list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.item{display:flex;gap:10px;align-items:center}
+.dot{width:13px;height:13px;background:var(--lime);border-radius:50%;flex:0 0 auto}
+.cross{color:#FF6B6B;font-weight:900;width:18px;text-align:center}
+.strike{text-decoration:line-through;color:#8888AA}
+.footer{
+  background:var(--lime);color:var(--dark);font:700 clamp(8px,1vw,12px) Unbounded,sans-serif;
+  padding:8px 10px;text-align:center;margin-top:16px;
+}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1}
+.tool{background:var(--mid);border:1.5px solid var(--purple);padding:16px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.emoji{font-size:clamp(18px,2.5vw,30px)}
+.scoreRow{background:var(--mid);border:1.5px solid var(--purpleL);padding:14px;display:flex;align-items:center;gap:12px;flex:1}
+.scoreNum{font:900 clamp(14px,1.9vw,24px) Unbounded,sans-serif;color:var(--lime);min-width:78px}
+.thumbs{width:100%;max-width:1100px;padding:0 16px 24px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.thumb{width:78px;height:44px;border-radius:4px;border:2px solid transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;font:700 9px Unbounded,sans-serif}
+.thumb.darkT{background:var(--dark);color:rgba(255,255,255,.75)}.thumb.lightT{background:var(--off);color:rgba(26,16,64,.65)}
+.thumb.active{border-color:var(--lime)}
+@media(max-width:760px){
+  .slide{aspect-ratio:auto;min-height:650px;padding:28px}.row,.grid3,.grid4{display:flex;flex-direction:column}.grid2,.tools{grid-template-columns:1fr}
+  h1{font-size:34px}.wrap{padding:16px 10px 40px}.nav{padding:10px}.brand{letter-spacing:1.5px}
+}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="brand">AI TREND SCHOOL</div>
+  <div class="controls">
+    <button onclick="prev()">← Назад</button>
+    <div class="counter" id="counter">1 / 12</div>
+    <button onclick="next()">Вперёд →</button>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="slide dark active">
+    <div class="leftbar"></div>
+    <div style="margin-left:3%;display:flex;flex-direction:column;justify-content:space-between;flex:1">
+      <div>
+        <div class="brand">AI TREND SCHOOL</div>
+        <h1 style="margin-top:24px">Кто такой<br><span class="lime">Продакт-менеджер?</span></h1>
+        <p class="purple" style="font-style:italic;margin-top:18px">И как войти в одну из самых крутых IT-профессий</p>
+      </div>
+      <div>
+        <div class="divider"></div>
+        <div class="row" style="flex:none">
+          <div><h3>50 минут</h3><p class="purple">длительность</p></div>
+          <div><h3>5 блоков</h3><p class="purple">активностей</p></div>
+          <div><h3>1 артефакт</h3><p class="purple">заберёшь</p></div>
+        </div>
+      </div>
+    </div>
+    <div style="position:absolute;right:5%;bottom:6%;background:var(--purple);border:1.5px solid var(--purpleL);padding:8px 18px;font:700 clamp(12px,1.4vw,16px) Unbounded,sans-serif;color:var(--lime)">12–17 лет</div>
+    <div class="num">1/12</div>
+  </section>
+
+  <section class="slide dark corner">
+    <div class="chip">ХВАТИТ СКУЧАТЬ</div>
+    <div class="row">
+      <div class="col" style="flex:1.2">
+        <h1>Кто решает,<br>что появится<br>в вашем TikTok<br>завтра?</h1>
+        <p class="purple">Не разработчик. Не дизайнер. Это делает PM — и за это платят:</p>
+      </div>
+      <div class="card" style="justify-content:center">
+        <div class="stat">$</div>
+        <h1>3,000–<br><span class="lime">15,000</span></h1>
+        <p class="purple">в месяц · глобально</p>
+        <h3 class="lime">В Казахстане: от 500,000 ₸</h3>
+      </div>
+    </div>
+    <div class="bar">ВОПРОС: Как вы думаете — PM пишет код? &nbsp; Поднимите руку кто думает ДА</div>
+    <div class="num">2/12</div>
+  </section>
+
+  <section class="slide light corner">
+    <h1>PM ≠ разработчик</h1><div class="divider" style="background:var(--purple)"></div>
+    <div class="row">
+      <div class="card" style="background:var(--purple)">
+        <h3 class="lime">PM ДЕЛАЕТ</h3>
+        <div class="list">
+          <div class="item"><span class="dot"></span><p>Общается с пользователями</p></div>
+          <div class="item"><span class="dot"></span><p>Придумывает фичи и приоритеты</p></div>
+          <div class="item"><span class="dot"></span><p>Пишет задачи разработчикам</p></div>
+          <div class="item"><span class="dot"></span><p>Следит за метриками</p></div>
+          <div class="item"><span class="dot"></span><p>Отвечает за успех продукта</p></div>
+        </div>
+      </div>
+      <div class="card" style="background:#1E1B2E">
+        <h3 style="color:#FF6B6B">НЕ ДЕЛАЕТ</h3>
+        <div class="list">
+          <div class="item"><span class="cross">✕</span><p class="strike">Пишет код</p></div>
+          <div class="item"><span class="cross">✕</span><p class="strike">Рисует дизайн</p></div>
+          <div class="item"><span class="cross">✕</span><p class="strike">Тестирует вручную</p></div>
+          <div class="item"><span class="cross">✕</span><p class="strike">Общается с инвесторами</p></div>
+          <div class="item"><span class="cross">✕</span><p class="strike">Занимается маркетингом</p></div>
+        </div>
+      </div>
+    </div>
+    <div class="footer">PM = CEO продукта. Отвечает за всё — но не делает всё сам.</div>
+    <div class="num">3/12</div>
+  </section>
+
+  <section class="slide dark corner">
+    <div class="chip">РЕАЛЬНЫЙ КЕЙС</div>
+    <h1>Как плохой PM<br>уничтожил Snapchat</h1>
+    <div class="grid3">
+      <div class="card"><div class="stat">2018</div><h3>Редизайн</h3><p class="muted">PM решил переделать интерфейс «для роста» без нормального тестирования с пользователями.</p></div>
+      <div class="card" style="border-color:#CC3333"><div class="stat" style="color:#FF6B6B">−1.3B$</div><h3>Капитализация</h3><p class="muted">За один день акции упали. Инвесторы бежали. Компания потеряла миллиарды.</p></div>
+      <div class="card" style="border-color:var(--lime)"><div class="stat">1.2M</div><h3>Петиция</h3><p class="muted">Пользователи подписали петицию: «Верните старый Snapchat!»</p></div>
+    </div>
+    <p class="lime" style="text-align:center;font-weight:700;font-style:italic;margin-top:16px">Вывод: PM принимает решения на основе данных, а не интуиции.</p>
+    <div class="num">4/12</div>
+  </section>
+
+  <section class="slide light corner">
+    <h1>Как думает PM: цикл работы</h1><div class="divider" style="background:var(--purple);width:40%"></div>
+    <div class="grid4">
+      <div class="card"><div class="emoji">🔍</div><h3>Discovery</h3><p class="muted">Ищем проблему пользователя — интервью, опросы, данные аналитики</p></div>
+      <div class="card"><div class="emoji">📝</div><h3>Definition</h3><p class="muted">Пишем PRD — что именно строим и зачем это нужно продукту</p></div>
+      <div class="card"><div class="emoji">🛠</div><h3>Delivery</h3><p class="muted">Работаем с командой — разработчики, дизайн, аналитика вместе</p></div>
+      <div class="card"><div class="emoji">🚀</div><h3>Launch</h3><p class="muted">Выпускаем и смотрим на метрики — сработало ли решение?</p></div>
+    </div>
+    <p style="color:var(--purple);text-align:center;font-style:italic;margin-top:16px">Пример: как функция «Избранное» в TikTok прошла все 4 этапа</p>
+    <div class="num">5/12</div>
+  </section>
+
+  <section class="slide dark corner">
+    <div class="chip">АКТИВНОСТЬ · 10 МИН</div>
+    <h1>Ты — PM за 5 минут</h1>
+    <div class="row" style="margin-top:18px;flex:none">
+      <div class="card" style="flex:1.4">
+        <h3 class="lime">Задание:</h3>
+        <p>Школьный электронный журнал — это отстой.<br>Ты — PM. Какую <b>одну</b> фичу добавишь первой и почему?</p>
+      </div>
+      <div class="card" style="background:var(--purple);border-color:var(--lime);align-items:center;text-align:center">
+        <div class="emoji">⏱</div><h2>3 мин<br>думаем</h2><p class="lime">2 мин → отвечаем</p>
+      </div>
+    </div>
+    <h3 class="purple" style="margin-top:16px">Разбираем через ICE:</h3>
+    <div class="grid3">
+      <div class="card" style="border-color:var(--lime)"><h1 class="lime">I</h1><h3>Impact</h3><p class="muted">Насколько сильно улучшит жизнь?</p></div>
+      <div class="card" style="border-color:var(--purpleL)"><h1 class="purple">C</h1><h3>Confidence</h3><p class="muted">Уверены, что сработает?</p></div>
+      <div class="card" style="border-color:var(--orange)"><h1 style="color:var(--orange)">E</h1><h3>Ease</h3><p class="muted">Насколько легко сделать?</p></div>
+    </div>
+    <div class="num">6/12</div>
+  </section>
+
+  <section class="slide light corner">
+    <h1>Главный документ PM — PRD</h1>
+    <p style="color:var(--purple);font-style:italic">Product Requirements Document — техзадание на человеческом языке</p>
+    <div class="divider" style="background:var(--purple)"></div>
+    <div class="grid2">
+      <div class="whiteCard"><h3>🎯 Проблема</h3><p style="color:var(--purple)">Что не так у пользователя?</p><p>Школьники узнают домашнее задание в 11 вечера через друзей</p></div>
+      <div class="whiteCard"><h3>👤 Пользователь</h3><p style="color:var(--purpleL)">Кто именно страдает?</p><p>Ученики 5–11 классов, 12–17 лет, смартфон всегда с собой</p></div>
+      <div class="whiteCard"><h3>💡 Решение</h3><p style="color:#6A9A2A">Что мы строим?</p><p>Push-уведомление с ДЗ автоматически сразу после урока</p></div>
+      <div class="whiteCard"><h3>📊 Метрика успеха</h3><p style="color:#6A9A2A">Как поймём, что сработало?</p><p>70% учеников открывают уведомление в первый час после урока</p></div>
+    </div>
+    <div class="num">7/12</div>
+  </section>
+
+  <section class="slide dark corner">
+    <div class="row">
+      <div class="col" style="flex:.8">
+        <div class="chip">ИНСТРУМЕНТЫ PM</div>
+        <h1>Что открыто на<br>ноутбуке PM<br>каждый день</h1>
+      </div>
+      <div class="tools">
+        <div class="tool" style="border-color:#EF6C3E"><div class="emoji">🎨</div><h3>Figma</h3><p class="muted">Смотрит дизайн и даёт фидбек</p></div>
+        <div class="tool"><div class="emoji">📋</div><h3>Notion</h3><p class="muted">PRD, планы и документация</p></div>
+        <div class="tool" style="border-color:var(--blue)"><div class="emoji">🎯</div><h3>Jira</h3><p class="muted">Задачи и статусы команды</p></div>
+        <div class="tool" style="border-color:var(--lime)"><div class="emoji">📈</div><h3>Analytics</h3><p class="muted">Что реально делают пользователи</p></div>
+        <div class="tool" style="border-color:var(--teal)"><div class="emoji">🤖</div><h3>Claude / GPT</h3><p class="muted">PRD, user stories, анализ фидбека</p></div>
+        <div class="tool" style="border-color:var(--blue)"><div class="emoji">📞</div><h3>Zoom / Meet</h3><p class="muted">Интервью с живыми людьми</p></div>
+      </div>
+    </div>
+    <div class="num">8/12</div>
+  </section>
+
+  <section class="slide light corner">
+    <div class="row">
+      <div class="col">
+        <div class="chip" style="background:var(--red);color:white">LIVE DEMO</div>
+        <h1>AI — суперсила<br>современного PM</h1>
+        <p style="color:var(--purple);font-style:italic">Прямо сейчас смотрим как это работает →</p>
+        <div class="card" style="border-color:var(--lime)">
+          <h3 class="lime">Промпт для Claude:</h3>
+          <p>“Ты опытный PM. Напиши user story для функции ‘Уведомление о домашнем задании’ в школьном приложении. Пользователь — ученик 14 лет. Формат: Как [кто], я хочу [что], чтобы [зачем]. Добавь 3 критерия приёмки.”</p>
+        </div>
+      </div>
+      <div class="card" style="background:var(--purple)">
+        <h3>Что даёт AI для PM:</h3>
+        <div class="scoreRow"><span class="scoreNum">10×</span><p>быстрее пишет PRD и user stories</p></div>
+        <div class="scoreRow"><span class="scoreNum">∞</span><p>вариантов фичей для брейншторма</p></div>
+        <div class="scoreRow"><span class="scoreNum">5 мин</span><p>анализ 100 отзывов пользователей</p></div>
+        <div class="scoreRow"><span class="scoreNum">AI+PM</span><p>конкурентное преимущество сейчас</p></div>
+      </div>
+    </div>
+    <div class="num">9/12</div>
+  </section>
+
+  <section class="slide dark corner">
+    <div class="chip">АКТИВНОСТЬ 2 · 8 МИН</div>
+    <h1>Пиши свой первый PRD</h1>
+    <p class="purple">Выбери любую проблему из своей жизни → заполни 4 поля:</p>
+    <div class="grid2">
+      <div class="card" style="border-color:var(--lime)"><h3 class="lime">1. ПРОБЛЕМА</h3><p class="muted">Что бесит тебя или твоих друзей каждый день?</p></div>
+      <div class="card" style="border-color:var(--purpleL)"><h3 class="purple">2. ПОЛЬЗОВАТЕЛЬ</h3><p class="muted">Кто именно страдает? Опиши конкретно.</p></div>
+      <div class="card" style="border-color:var(--orange)"><h3 style="color:var(--orange)">3. РЕШЕНИЕ</h3><p class="muted">Какую одну фичу сделаешь первой?</p></div>
+      <div class="card" style="border-color:var(--teal)"><h3 style="color:var(--teal)">4. МЕТРИКА УСПЕХА</h3><p class="muted">Как поймёшь, что решение сработало?</p></div>
+    </div>
+    <div class="bar">VIP: отправь PM куратору | Smart: голосуем в группе — чья идея круче! | Base: сохрани и доделай</div>
+    <div class="num">10/12</div>
+  </section>
+
+  <section class="slide light corner">
+    <h1>Как войти в профессию PM</h1><div class="divider"></div>
+    <div class="grid3">
+      <div class="whiteCard"><div class="emoji">🎓</div><h3>Курсы + проект</h3><p>Пройти онлайн-курс по PM</p><p>Сделать учебный кейс/проект</p><p>Добавить в резюме</p><div class="footer" style="background:var(--purple);color:white">3–6 мес</div></div>
+      <div class="whiteCard"><div class="emoji">🛠</div><h3>Пет-проект</h3><p>Придумать продукт для себя</p><p>Написать PRD и спланировать фичи</p><p>Показать вместо резюме</p><div class="footer">2–4 мес</div></div>
+      <div class="whiteCard"><div class="emoji">🚀</div><h3>Стажировка</h3><p>Откликнуться на Junior PM</p><p>Пройти тестовое задание</p><p>Получить оффер и опыт</p><div class="footer" style="background:var(--orange);color:white">от 16 лет</div></div>
+    </div>
+    <p style="color:var(--purple);text-align:center;font-style:italic;font-weight:700;margin-top:14px">Твой возраст — не барьер. Есть PM, которые начали в 15.</p>
+    <div class="num">11/12</div>
+  </section>
+
+  <section class="slide dark">
+    <div class="leftbar"></div>
+    <div class="row" style="margin-left:3%">
+      <div class="col" style="flex:1.2">
+        <div class="brand">AI TREND SCHOOL</div>
+        <p class="purple" style="margin-top:18px">Сегодня ты:</p>
+        <div class="list">
+          <div class="item"><span class="dot"></span><p>Узнал как PM думает и принимает решения</p></div>
+          <div class="item"><span class="dot"></span><p>Разобрал реальный кейс Snapchat</p></div>
+          <div class="item"><span class="dot"></span><p>Поработал с ICE-фреймворком</p></div>
+          <div class="item"><span class="dot"></span><p>Написал свой первый мини-PRD</p></div>
+        </div>
+        <div class="divider"></div>
+        <div class="card" style="border-color:var(--lime)">
+          <h3 class="lime">🎁 Твой артефакт:</h3>
+          <h2>Мини-PRD + шаблон в Notion<br>Go build something awesome!</h2>
+        </div>
+      </div>
+      <div class="card" style="align-items:center;justify-content:center;text-align:center;border-color:var(--lime)">
+        <div style="width:70%;aspect-ratio:1;border:2px solid var(--purpleL);display:flex;align-items:center;justify-content:center;font:700 20px Unbounded,sans-serif;color:var(--purpleL)">QR<br>код</div>
+        <h3 class="lime">Шаблон PRD<br>для тебя</h3>
+      </div>
+    </div>
+    <div class="bar" style="background:var(--lime);color:var(--dark);text-align:center">AI Trend — школа AI для подростков 12–17 лет · Казахстан · aitrend.school</div>
+    <div class="num">12/12</div>
+  </section>
+</main>
+
+<div class="thumbs" id="thumbs"></div>
+
+<script>
+let current=1;
+const total=12;
+const slides=[...document.querySelectorAll('.slide')];
+const thumbs=document.getElementById('thumbs');
+thumbs.innerHTML=slides.map((s,i)=>`<div class="thumb ${s.classList.contains('light')?'lightT':'darkT'}" onclick="goTo(${i+1})">${i+1}</div>`).join('');
+function showSlide(n){
+  slides.forEach((s,i)=>s.classList.toggle('active',i===n-1));
+  [...document.querySelectorAll('.thumb')].forEach((t,i)=>t.classList.toggle('active',i===n-1));
+  document.getElementById('counter').textContent=n+' / '+total;
+  current=n;
+}
+function next(){if(current<total)showSlide(current+1)}
+function prev(){if(current>1)showSlide(current-1)}
+function goTo(n){showSlide(n)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();next()}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();prev()}
+});
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx;
+  if(dx<-50)next();
+  if(dx>50)prev();
+});
+showSlide(1);
+</script>
+</body>
+</html>
