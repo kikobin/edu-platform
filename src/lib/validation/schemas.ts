@@ -92,6 +92,19 @@ export const AddStudentToGroupSchema = z.object({
   studentProfileId: z.string().uuid(),
 });
 
+// ─── Admin: create student ────────────────────────────────────────────────────
+
+// username becomes "<username>@edu-platform.internal" — keep ASCII-safe.
+const USERNAME_RE = /^[a-z0-9_]{3,30}$/;
+
+export const CreateStudentSchema = z.object({
+  username: z.string().regex(USERNAME_RE, "lowercase letters, digits, underscore (3–30 chars)"),
+  password: z.string().min(6).max(100),
+  name:     z.string().trim().min(1).max(80),
+  avatarId: z.string().max(50).optional(),
+  groupId:  z.string().uuid().nullable().optional(),
+});
+
 // ─── Profile ──────────────────────────────────────────────────────────────────
 
 export const PatchProfileSchema = z.object({

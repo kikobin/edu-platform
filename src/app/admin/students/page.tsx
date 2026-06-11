@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LEVELS, type AvatarId } from "@/types";
+import AddStudentModal from "./AddStudentModal";
 
 interface Student {
   id: string;
@@ -64,6 +65,8 @@ export default function AdminStudentsPage() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [debounced, setDebounced] = useState("");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [reloadTick, setReloadTick]   = useState(0);
 
   // Debounce search → fetch
   useEffect(() => {
@@ -95,7 +98,7 @@ export default function AdminStudentsPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [page, debounced]);
+  }, [page, debounced, reloadTick]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -108,6 +111,12 @@ export default function AdminStudentsPage() {
           <p className="text-sm text-gray-500 mt-0.5">{total} человек{total === 1 ? "" : total < 5 ? "а" : ""} в группе</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="px-3 py-2 text-xs font-bold rounded-xl bg-primary text-white hover:bg-primary/90 transition-all"
+          >
+            + Новый ученик
+          </button>
           <a
             href="/api/admin/students/export"
             className="px-3 py-2 text-xs font-bold rounded-xl bg-white border border-gray-200 hover:border-primary/40 hover:text-primary transition-all"
@@ -180,6 +189,16 @@ export default function AdminStudentsPage() {
           </tbody>
         </table>
       </div>
+
+      {showAddForm && (
+        <AddStudentModal
+          onClose={() => setShowAddForm(false)}
+          onCreated={() => {
+            setShowAddForm(false);
+            setReloadTick((t) => t + 1);
+          }}
+        />
+      )}
 
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
