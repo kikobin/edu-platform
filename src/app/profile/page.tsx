@@ -356,7 +356,7 @@ export default function ProfilePage() {
                 >
                   LVL {String(level.level).padStart(2, "0")}
                 </div>
-                <span className="font-mono text-[#C6F432]/30 text-xs">//</span>
+                <span className="font-mono text-[#C6F432]/30 text-xs">{"//"}</span>
                 <span className="font-mono text-white/50 text-xs uppercase tracking-widest">{level.label}</span>
                 {nextLevel && (
                   <>
@@ -488,7 +488,7 @@ export default function ProfilePage() {
               style={{ background: "#09090C", borderColor: "rgba(198,244,50,0.08)" }}
             >
               <div className="flex items-center justify-between mb-5">
-                <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">// ДОСТИЖЕНИЯ</span>
+                <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">{"// ДОСТИЖЕНИЯ"}</span>
                 <span className="font-mono text-[#C6F432]/40 text-xs tracking-widest">
                   [ {unlockedCount} / {achievements.length} UNLOCKED ]
                 </span>
@@ -573,7 +573,7 @@ export default function ProfilePage() {
                 style={{ background: "#09090C", borderColor: "rgba(177,78,255,0.12)" }}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">// АВАТАР</span>
+                  <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">{"// АВАТАР"}</span>
                   <span className="cp-blink font-mono text-[#C6F432] text-sm">_</span>
                 </div>
                 <div className="grid grid-cols-4 gap-3 place-items-center">
@@ -603,7 +603,7 @@ export default function ProfilePage() {
                 style={{ background: "#09090C", borderColor: "rgba(0,229,255,0.1)" }}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">// ИСТОРИЯ КВЕСТОВ</span>
+                  <span className="font-mono text-white text-sm font-bold tracking-[0.15em]">{"// ИСТОРИЯ КВЕСТОВ"}</span>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
                   <pre
@@ -618,7 +618,7 @@ export default function ProfilePage() {
                     {">"} no_quests.found()
                   </p>
                   <p className="font-mono text-[10px] text-white/15 mb-5">
-                    // начни первый квест, чтобы записать историю
+                    {"// начни первый квест, чтобы записать историю"}
                   </p>
                   <button
                     className="cp-btn-cta font-mono text-[11px] font-bold px-4 py-2 uppercase tracking-widest border"
